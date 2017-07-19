@@ -4,7 +4,15 @@ var width;
 var height;
 var unit = 50;
 var cubes = [];
-var colors = [0xFFFFFF, 0xFF0000, 0x00FF00, 0x0000FF, 0x00FFFF, 0xFF8000]
+var colors = [0xFFFFFF, 0xFF0000, 0x00FF00, 0x0000FF, 0x00FFFF, 0xFF8000];
+var camera;
+var controller;
+var scene;
+var light;
+var cubes;
+var canRotate=true;
+
+
 window.requestAnimFrame = (function() {
     return window.requestAnimationFrame ||
             window.mozRequestAnimationFrame ||
@@ -20,21 +28,18 @@ function begin() {
     initLight();
     initObject();
     render();
+    window.addEventListener('keydown', handleKeyDown);
 }
 
 function initThree() {
     width = window.innerWidth;
     height = window.innerHeight;
-    renderer = new THREE.WebGLRenderer({
-        antialias : true
-    });
+    renderer = new THREE.WebGLRenderer();
     renderer.setSize(width, height);
-    renderer.setClearColor(0xFFFFFF, 1.0);
+    renderer.setClearColor(0xF0F0F0, 1.0);
     document.getElementById('canvas-frame').appendChild(renderer.domElement);
 }
 
-var camera;
-var controller;
 function initCamera() {
     camera = new THREE.PerspectiveCamera(45, width / height, 1, 1000);
     camera.position.z = 600;
@@ -43,7 +48,6 @@ function initCamera() {
     controller.target = new THREE.Vector3(0, 0, -75);
 }
 
-var scene;
 function initScene() {
     scene = new THREE.Scene();
     drawCubes();
@@ -51,13 +55,11 @@ function initScene() {
         scene.add(cube)
 }
 
-var light;
 function initLight() {
     light = new THREE.AmbientLight(0xfefefe);
     scene.add(light);
 }
 
-var cubes;
 function initObject() {
 }
 
@@ -85,39 +87,123 @@ function drawCubes() {
 			}
 }
 
+function rotateOnX(objs, rad) {
+    let cos = Math.cos(rad);
+    let sin = Math.sin(rad);
+    for (let cube of objs) {
+        let y = cube.position.y;
+        let z = cube.position.z;
+        let quaternion = new THREE.Quaternion();
+        quaternion.setFromAxisAngle(new THREE.Vector3(1, 0, 0), rad);
+        cube.quaternion.premultiply(quaternion);
+        cube.position.y = y * cos - z * sin;
+        cube.position.z = z * cos + y * sin;
+    }
+}
 function rotateOnY(objs, rad) {
     let cos = Math.cos(rad);
     let sin = Math.sin(rad);
     for (let cube of objs) {
         let x = cube.position.x;
         let z = cube.position.z;
-        cube.rotateY(rad);
-        cube.position.x = x * cos + z * sin;
+        let quaternion = new THREE.Quaternion();
+        quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), rad);
+        cube.quaternion.premultiply(quaternion);
         cube.position.z = z * cos - x * sin;
+        cube.position.x = x * cos + z * sin;
     }
 }
-function U() {
-    let objs = [];
-    for (let cube of cubes) {
-        if (cube.position.y === unit) 
-            objs.push(cube);
+function rotateOnZ(objs, rad) {
+    let cos = Math.cos(rad);
+    let sin = Math.sin(rad);
+    for (let cube of objs) {
+        let x = cube.position.x;
+        let y = cube.position.y;
+        let quaternion = new THREE.Quaternion();
+        quaternion.setFromAxisAngle(new THREE.Vector3(0, 0, 1), rad);
+        cube.quaternion.premultiply(quaternion);
+        cube.position.x = x * cos - y * sin;
+        cube.position.y = y * cos + x * sin;
     }
-    let startTime = new Date().getTime();
-    window.requestAnimFrame(function(timestamp){rotate(objs,'U',timestamp,0);});
+}
+
+function OP(op) {
+    let objs = [];
+    switch(op) {
+        case 'R':
+            for (let cube of cubes) {
+                if (appro(cube.position.x, unit)) 
+                objs.push(cube);
+            }
+            break;
+        case 'L':
+            for (let cube of cubes) {
+                if (appro(cube.position.x, -unit)) 
+                objs.push(cube);
+            }
+            break;
+        case 'U':
+            for (let cube of cubes) {
+                if (appro(cube.position.y, unit)) 
+                objs.push(cube);
+            }
+            break;
+        case 'D':
+            for (let cube of cubes) {
+                if (appro(cube.position.y, -unit)) 
+                objs.push(cube);
+            }
+            break;
+        case 'F':
+            for (let cube of cubes) {
+                if (appro(cube.position.z, unit)) 
+                objs.push(cube);
+            }
+            break;
+        case 'B':
+            for (let cube of cubes) {
+                if (appro(cube.position.z, -unit)) 
+                objs.push(cube);
+            }
+            break;
+    }
+    window.requestAnimFrame(function(timestamp){rotate(objs,op,timestamp,0);});
 }
 function rotate(objs, op, now, start, last){
     let total = 300;
     if (start === 0) {
         start = now;
         last = now;
+        canRotate = false;
     }
     if (now - start > total) {
         now = start + total;
+        canRotate = true;
     }
-    if (op === 'U') {
-        rotateOnY(objs, - (now - last)/total * Math.PI / 2);
+    switch(op) {
+        case 'R': rotateOnX(objs, - (now - last) / total * Math.PI / 2); break;
+        case 'L': rotateOnX(objs, - (now - last) / total * Math.PI / 2); break;
+        case 'U': rotateOnY(objs, - (now - last) / total * Math.PI / 2); break;
+        case 'D': rotateOnY(objs, - (now - last) / total * Math.PI / 2); break;
+        case 'F': rotateOnZ(objs, - (now - last) / total * Math.PI / 2); break;
+        case 'B': rotateOnZ(objs, - (now - last) / total * Math.PI / 2); break;
     }
     if (now - start < total){
          window.requestAnimFrame(function(timestamp){rotate(objs, op,timestamp,start,now);});
+    }
+}
+
+function appro(lhs, rhs) { return Math.abs(lhs - rhs) < 1;}
+
+function handleKeyDown(evt) {
+    if (canRotate) {
+        switch(evt.keyCode) {
+            case 82: OP('R');break;
+            case 76: OP('L');break;
+            case 85: OP('U');break;
+            case 68: OP('D');break;
+            case 70: OP('F');break;
+            case 66: OP('B');break;
+        }
     }
 }
