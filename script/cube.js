@@ -57,7 +57,7 @@ function initLight() {
     scene.add(light);
 }
 
-var cubes
+var cubes;
 function initObject() {
 }
 
@@ -83,4 +83,41 @@ function drawCubes() {
                 cube.position.z = k * unit;
                 cubes.push(cube);
 			}
+}
+
+function rotateOnY(objs, rad) {
+    let cos = Math.cos(rad);
+    let sin = Math.sin(rad);
+    for (let cube of objs) {
+        let x = cube.position.x;
+        let z = cube.position.z;
+        cube.rotateY(rad);
+        cube.position.x = x * cos + z * sin;
+        cube.position.z = z * cos - x * sin;
+    }
+}
+function U() {
+    let objs = [];
+    for (let cube of cubes) {
+        if (cube.position.y === unit) 
+            objs.push(cube);
+    }
+    let startTime = new Date().getTime();
+    window.requestAnimFrame(function(timestamp){rotate(objs,'U',timestamp,0);});
+}
+function rotate(objs, op, now, start, last){
+    let total = 300;
+    if (start === 0) {
+        start = now;
+        last = now;
+    }
+    if (now - start > total) {
+        now = start + total;
+    }
+    if (op === 'U') {
+        rotateOnY(objs, - (now - last)/total * Math.PI / 2);
+    }
+    if (now - start < total){
+         window.requestAnimFrame(function(timestamp){rotate(objs, op,timestamp,start,now);});
+    }
 }
