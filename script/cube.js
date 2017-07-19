@@ -4,7 +4,8 @@ var width;
 var height;
 var unit = 50;
 var cubes = [];
-var colors = [0xFFFFFF, 0xFF0000, 0x00FF00, 0x0000FF, 0x00FFFF, 0xFF8000];
+var colors = ['#60ff50', '#30a0ff', '#efff50', '#ffffff', '#ffa000', '#ff0000', '#000000'];
+
 var camera;
 var controller;
 var scene;
@@ -70,15 +71,12 @@ function render(){
 }
 
 function drawCubes() {
+    let canvases = generateCanvases();
     for (let i = -1; i < 2; ++i)
         for (let j = -1; j < 2; ++j)
             for (let k = -1; k < 2; ++k) {
                 let geometry = new THREE.BoxGeometry( unit, unit, unit );
-                for (let index = 0; index < 6; index++) {
-					geometry.faces[2 * index].color.setHex(colors[index]);
-					geometry.faces[2 * index + 1].color.setHex(colors[index]);
-				}
-                let material = new THREE.MeshBasicMaterial({ vertexColors: THREE.FaceColors, overdraw: 0.5 });
+                let material = generateMaterial(canvases, i, j, k);
                 let cube = new THREE.Mesh( geometry, material );
                 cube.position.x = i * unit;
                 cube.position.y = j * unit;
@@ -86,7 +84,38 @@ function drawCubes() {
                 cubes.push(cube);
 			}
 }
-
+function generateCanvases(){
+    let canvases = [];
+    for (let color of colors) {
+        let canvas = document.createElement('canvas');
+        let len = 64;
+        canvas.width = canvas.height = len;
+        let ctx = canvas.getContext('2d');
+        ctx.fillStyle = color;
+        ctx.fillRect(0, 0, len, len);
+        ctx.strokeStyle = "#000000";
+        ctx.lineWidth = 4;
+        ctx.strokeRect(0, 0, len, len);
+        canvases.push(canvas)
+    }
+    return canvases;
+}
+function generateMaterial(canvases, i, j, k) {
+    let materials = [];
+    let select = [6, 6, 6, 6, 6, 6];
+    if (i === 1) select[0] = 0;
+    if (i === -1) select[1] = 1;
+    if (j === 1) select[2] = 2;
+    if (j === -1) select[3] = 3;
+    if (k === 1) select[4] = 4;
+    if (k === -1) select[5] = 5;
+    for (let index of select) {
+        let texture = new THREE.Texture(canvases[index]);
+        texture.needsUpdate = true;
+        materials.push(new THREE.MeshBasicMaterial({ map: texture}));
+    }
+    return materials;
+}
 function rotateOnX(objs, rad) {
     let cos = Math.cos(rad);
     let sin = Math.sin(rad);
@@ -174,7 +203,6 @@ function rotate(objs, op, now, start, last){
     if (start === 0) {
         start = now;
         last = now;
-        canRotate = false;
     }
     if (now - start > total) {
         now = start + total;
@@ -197,6 +225,7 @@ function appro(lhs, rhs) { return Math.abs(lhs - rhs) < 1;}
 
 function handleKeyDown(evt) {
     if (canRotate) {
+        canRotate = false;
         switch(evt.keyCode) {
             case 82: OP('R');break;
             case 76: OP('L');break;
@@ -204,6 +233,7 @@ function handleKeyDown(evt) {
             case 68: OP('D');break;
             case 70: OP('F');break;
             case 66: OP('B');break;
+            default: canRotate = true;
         }
     }
 }
