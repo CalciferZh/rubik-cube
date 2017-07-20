@@ -12,6 +12,7 @@ var scene;
 var light;
 var cubes;
 var canRotate=true;
+var raycaster = new THREE.Raycaster();
 
 
 window.requestAnimFrame = (function() {
@@ -30,6 +31,9 @@ function begin() {
     initObject();
     render();
     window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
 }
 
 function initThree() {
@@ -156,50 +160,57 @@ function rotateOnZ(objs, rad) {
     }
 }
 
-function OP(op) {
+function OP(op, rad) {
     let objs = [];
+    let axis;
     switch(op) {
         case 'R':
             for (let cube of cubes) {
                 if (appro(cube.position.x, unit)) 
                 objs.push(cube);
             }
+            axis = 'X';
             break;
         case 'L':
             for (let cube of cubes) {
                 if (appro(cube.position.x, -unit)) 
                 objs.push(cube);
             }
+            axis = 'X';
             break;
         case 'U':
             for (let cube of cubes) {
                 if (appro(cube.position.y, unit)) 
                 objs.push(cube);
             }
+            axis = 'Y';
             break;
         case 'D':
             for (let cube of cubes) {
                 if (appro(cube.position.y, -unit)) 
                 objs.push(cube);
             }
+            axis = 'Y';
             break;
         case 'F':
             for (let cube of cubes) {
                 if (appro(cube.position.z, unit)) 
                 objs.push(cube);
             }
+            axis = 'Z';
             break;
         case 'B':
             for (let cube of cubes) {
                 if (appro(cube.position.z, -unit)) 
                 objs.push(cube);
             }
+            axis = 'Z';
             break;
     }
-    window.requestAnimFrame(function(timestamp){rotate(objs,op,timestamp,0);});
+    window.requestAnimFrame(function(timestamp){rotate(objs,axis,rad,timestamp,0);});
 }
-function rotate(objs, op, now, start, last){
-    let total = 300;
+function rotate(objs, axis, rad, now, start, last){
+    let total = 300 * Math.abs(rad);
     if (start === 0) {
         start = now;
         last = now;
@@ -208,16 +219,13 @@ function rotate(objs, op, now, start, last){
         now = start + total;
         canRotate = true;
     }
-    switch(op) {
-        case 'R': rotateOnX(objs, - (now - last) / total * Math.PI / 2); break;
-        case 'L': rotateOnX(objs, - (now - last) / total * Math.PI / 2); break;
-        case 'U': rotateOnY(objs, - (now - last) / total * Math.PI / 2); break;
-        case 'D': rotateOnY(objs, - (now - last) / total * Math.PI / 2); break;
-        case 'F': rotateOnZ(objs, - (now - last) / total * Math.PI / 2); break;
-        case 'B': rotateOnZ(objs, - (now - last) / total * Math.PI / 2); break;
+    switch(axis) {
+        case 'X': rotateOnX(objs, (now - last) / total * rad); break;
+        case 'Y': rotateOnY(objs, (now - last) / total * rad); break;
+        case 'Z': rotateOnZ(objs, (now - last) / total * rad); break;
     }
     if (now - start < total){
-         window.requestAnimFrame(function(timestamp){rotate(objs, op,timestamp,start,now);});
+         window.requestAnimFrame(function(timestamp){rotate(objs, axis, rad, timestamp,start,now);});
     }
 }
 
@@ -227,13 +235,63 @@ function handleKeyDown(evt) {
     if (canRotate) {
         canRotate = false;
         switch(evt.keyCode) {
-            case 82: OP('R');break;
-            case 76: OP('L');break;
-            case 85: OP('U');break;
-            case 68: OP('D');break;
-            case 70: OP('F');break;
-            case 66: OP('B');break;
+            case 82: OP('R', - Math.PI / 2);break;
+            case 76: OP('L', - Math.PI / 2);break;
+            case 85: OP('U', - Math.PI / 2);break;
+            case 68: OP('D', - Math.PI / 2);break;
+            case 70: OP('F', - Math.PI / 2);break;
+            case 66: OP('B', - Math.PI / 2);break;
             default: canRotate = true;
         }
+    }
+}
+function getIntersectCube(x, y) {
+    let mouse = new THREE.Vector2();
+    mouse.x = x;
+    mouse.y = y;
+    raycaster.setFromCamera(mouse, camera);
+    let cubes = raycaster.intersectObjects(scene.children);
+    return cubes.length > 0 ? cubes[0] : null;
+}
+var last = {
+    total:0,
+    x:0,
+    y:0,
+    flag:false,
+    objs: [],
+}
+function handleMouseDown(evt) {
+    let cube = getIntersectCube((event.clientX / width) * 2 - 1, -(event.clientY / height) * 2 + 1);
+    if (cube !== null) {
+        last.x = event.clientX;
+        last.y = event.clientY;
+        last.flag = true;
+        controller.enableRotate = false;
+        for (let cube of cubes) {
+            if (appro(cube.position.y, unit)) 
+            last.objs.push(cube);
+        }
+    }
+}
+function handleMouseUp(evt) {
+    if (last.flag === true) {
+        last.flag = false;
+        controller.enableRotate = true;
+        let correct = Math.round(last.total / 100 / Math.PI) * 100 * Math.PI;   
+        let objs = [];
+        for (let cube of last.objs)
+             objs.push(cube);
+        let rad = (correct - last.total) / 200;
+        window.requestAnimFrame(function(timestamp){rotate(objs,'Y',rad,timestamp,0);});
+        last.total = 0;
+        last.objs.splice(0, last.objs.length);
+    }
+}
+function handleMouseMove(evt) {
+    if (last.flag) {
+        let dx = evt.clientX - last.x;
+        last.x = evt.clientX;
+        last.total += dx;
+        rotateOnY(last.objs, dx / 200);
     }
 }
