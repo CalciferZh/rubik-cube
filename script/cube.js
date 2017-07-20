@@ -259,39 +259,92 @@ var last = {
     y:0,
     flag:false,
     objs: [],
+    main: '',
+    point: '',//the intersect point in which face? x or y or z
+    axis: '',//the rotating axis
+    intersectPoint:null,
 }
 function handleMouseDown(evt) {
     let cube = getIntersectCube((event.clientX / width) * 2 - 1, -(event.clientY / height) * 2 + 1);
     if (cube !== null) {
+        last.intersectPoint = cube.point;
+        if (appro(Math.abs(cube.point.x), unit * 1.5))
+            last.point = 'X';
+        else if (appro(Math.abs(cube.point.y), unit * 1.5))
+            last.point = 'Y';
+        else if (appro(Math.abs(cube.point.z), unit * 1.5))
+            last.point = 'Z';
         last.x = event.clientX;
         last.y = event.clientY;
         last.flag = true;
         controller.enableRotate = false;
-        for (let cube of cubes) {
-            if (appro(cube.position.y, unit)) 
-            last.objs.push(cube);
-        }
     }
 }
 function handleMouseUp(evt) {
     if (last.flag === true) {
         last.flag = false;
         controller.enableRotate = true;
-        let correct = Math.round(last.total / 100 / Math.PI) * 100 * Math.PI;   
+        let correct = Math.round(last.total / 100 / Math.PI) * 100 * Math.PI;  //can change 
         let objs = [];
         for (let cube of last.objs)
              objs.push(cube);
         let rad = (correct - last.total) / 200;
-        window.requestAnimFrame(function(timestamp){rotate(objs,'Y',rad,timestamp,0);});
+        let axis = last.axis;
+        window.requestAnimFrame(function(timestamp){rotate(objs,axis,rad,timestamp,0);});
         last.total = 0;
         last.objs.splice(0, last.objs.length);
+        last.main='';
+        last.point='';
+        last.axis='';
+        last.intersectPoint = null;
     }
 }
 function handleMouseMove(evt) {
     if (last.flag) {
-        let dx = evt.clientX - last.x;
-        last.x = evt.clientX;
-        last.total += dx;
-        rotateOnY(last.objs, dx / 200);
+        let diff = 0;
+        switch (last.main) {
+            case 'X': diff = evt.clientX - last.x; last.x = evt.clientX; break;
+            case 'Y': diff = evt.clientY - last.y; last.y = evt.clientY; break;
+            default://need improvement
+                let dx = evt.clientX - last.x;
+                let dy = evt.clientY - last.y;
+                if (dx < 10 && dy < 10) break;
+                diff = dx > dy ? dx : dy;
+                last.main = Math.abs(dx) > Math.abs(dy) ? 'X' : 'Y';
+                switch(last.point) {
+                    case 'X': last.axis = last.main === 'Y' ? 'Z' : 'Y'; break;
+                    case 'Y': last.axis = last.main === 'Y' ? 'X' : 'Z'; break;
+                    case 'Z': last.axis = last.main === 'Y' ? 'X' : 'Y'; break;
+                }
+                switch (last.axis) {
+                    case 'X':
+                        let x = Math.round(last.intersectPoint.x / 50) * 50;
+                        for (let cube of cubes) {
+                            if (appro(cube.position.x, x))
+                                last.objs.push(cube);
+                        }
+                        break;
+                    case 'Y':
+                        let y = Math.round(last.intersectPoint.y / 50) * 50;
+                        for (let cube of cubes) {
+                            if (appro(cube.position.y, y))
+                                last.objs.push(cube);
+                        }
+                        break;
+                    case 'Z':
+                        let z = Math.round(last.intersectPoint.z / 50) * 50;
+                        for (let cube of cubes) {
+                            if (appro(cube.position.z, z))
+                                last.objs.push(cube);
+                        }
+                        break;
+                }
+        }
+        last.total += diff;
+        switch(last.axis) {
+            case 'X': rotateOnX(last.objs, diff / 200);break;
+            case 'Y': rotateOnY(last.objs, diff / 200);break;
+            case 'Z': rotateOnZ(last.objs, diff / 200);break;
+        }
     }
 }
