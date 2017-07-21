@@ -1,284 +1,397 @@
-// corner patches
-const URF = 0,
-      UFL = 1,
-      ULB = 2,
-      UBR = 3,
-      DFR = 4,
-      DLF = 5,
-      DBL = 6,
-      DRB = 7;
+var renderer;
+var width;
+var height;
+var unit = 50;
+var cubes = [];
+var colors = ['#60ff50', '#30a0ff', '#efff50', '#ffffff', '#ffa000', '#ff0000', '#000000'];
 
-// edge patches
-const UR = 0,
-      UF = 1,
-      UL = 2,
-      UB = 3,
-      DR = 4,
-      DF = 5,
-      DL = 6,
-      DB = 7,
-      FR = 8,
-      FL = 9,
-      BL = 10,
-      BR = 11;
+var camera;
+var controller;
+var scene;
+var light;
+var cubes;
+var canRotate=true;
+var raycaster = new THREE.Raycaster();
 
-const faceID = {
-  U: 0,
-  R: 1,
-  F: 2,
-  D: 3,
-  L: 4,
-  B: 5
-};
 
-const faceName = ['U', 'R', 'F', 'D', 'L', 'B'];
+window.requestAnimFrame = (function() {
+    return window.requestAnimationFrame ||
+            window.mozRequestAnimationFrame ||
+            window.webkitRequestAnimationFrame ||
+            window.msRequestAnimationFrame ||
+            window.webkitRequestAnimationFrame;
+})();
 
-const cornerID = {
-  URF: 0,
-  UFL: 1,
-  ULB: 2,
-  UBR: 3,
-  DFR: 4,
-  DLF: 5,
-  DBL: 6,
-  DRB: 7
-};
-
-const cornerName = ["URF", "UFL", "ULB", "UBR", "DFR", "DLF", "DBL", "DRB"];
-
-const edgeID = {
-  UR: 0,
-  UF: 1,
-  UL: 2,
-  UB: 3,
-  DR: 4,
-  DF: 5,
-  DL: 6,
-  DB: 7,
-  FR: 8,
-  FL: 9,
-  BL: 10,
-  BR: 11
+function begin() {
+    initThree();
+    initCamera();
+    initScene();
+    initLight();
+    initObject();
+    render();
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
 }
 
-const edgeName = ["UR", "UF", "UL", "UB", "DR", "DF", "DL", "DB", "FR", "FL", "BL", "BR"];
+function initThree() {
+    width = window.innerWidth;
+    height = window.innerHeight;
+    renderer = new THREE.WebGLRenderer();
+    renderer.setSize(width, height);
+    renderer.setClearColor(0xF0F0F0, 1.0);
+    document.getElementById('canvas-frame').appendChild(renderer.domElement);
+}
 
-const cornerNum = 8;
-const edgeNum = 12;
+function initCamera() {
+    camera = new THREE.PerspectiveCamera(45, width / height, 1, 1000);
+    camera.position.x = 400;
+    camera.position.y = 300;
+    camera.position.z = 500;
+    camera.lookAt({x:0,y:0,z:0});
+//    camera.up.y = 1;
+//    controller = new THREE.OrbitControls(camera, render.domElement);
+//    controller.target = new THREE.Vector3(0, 0, -75);
+}
 
-class Cube {
-  constructor() {
-    // cp: corner patch
-    this.cp = [URF, UFL, ULB, UBR, DFR, DLF, DBL, DRB];
-    // co: corner orientation
-    this.co = [0, 0, 0, 0, 0, 0, 0, 0];
-    // ep: edge patch
-    this.ep = [UR, UF, UL, UB, DR, DF, DL, DB, FR, FL, BL, BR];
-    // eo: edge orientation
-    this.eo = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    // stores the status of a cube tranformed from initial status after
-    // atomic manipulation
-    this.rotation = [
-      { // U
-        cp: [UBR, URF, UFL, ULB, DFR, DLF, DBL, DRB],
-        co: [0, 0, 0, 0, 0, 0, 0, 0],
-        ep: [UB, UR, UF, UL, DR, DF, DL, DB, FR, FL, BL, BR],
-        eo: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-      }, { // R
-        cp: [DFR, UFL, ULB, URF, DRB, DLF, DBL, UBR],
-        co: [2, 0, 0, 1, 1, 0, 0, 2],
-        ep: [FR, UF, UL, UB, BR, DF, DL, DB, DR, FL, BL, UR],
-        eo: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-      }, { // F
-        cp: [UFL, DLF, ULB, UBR, URF, DFR, DBL, DRB],
-        co: [1, 2, 0, 0, 2, 1, 0, 0],
-        ep: [UR, FL, UL, UB, DR, FR, DL, DB, UF, DF, BL, BR],
-        eo: [0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0]
-      }, { // D
-        cp: [URF, UFL, ULB, UBR, DLF, DBL, DRB, DFR],
-        co: [0, 0, 0, 0, 0, 0, 0, 0],
-        ep: [UR, UF, UL, UB, DF, DL, DB, DR, FR, FL, BL, BR],
-        eo: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-      }, { // L
-        cp: [URF, ULB, DBL, UBR, DFR, UFL, DLF, DRB],
-        co: [0, 1, 2, 0, 0, 2, 1, 0],
-        ep: [UR, UF, BL, UB, DR, DF, FL, DB, FR, UL, DL, BR],
-        eo: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-      }, { // B
-        cp: [URF, UFL, UBR, DRB, DFR, DLF, ULB, DBL],
-        co: [0, 0, 1, 2, 0, 0, 2, 1],
-        ep: [UR, UF, UL, BR, DR, DF, DL, BL, FR, FL, UB, DB],
-        eo: [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1]
-      }
-    ];
-  }
+function initScene() {
+    scene = new THREE.Scene();
+    drawCubes();
+    for (let cube of cubes)
+        scene.add(cube)
+}
 
-  // only accept Singmaster Symbols:
-  // F = rotate 90 degree
-  // F2 = rotate 180 degree
-  // F' = rotate 270 degree
-  // all is clockwise
-  rotate(command) {
-    // which face
-    let face = faceID[command[0]];
-    // how many times
-    let repeat = null;
+function initLight() {
+    light = new THREE.AmbientLight(0xfefefe);
+    scene.add(light);
+}
 
-    if (command.length === 1) {
-      repeat = 1;
-    } else if (command[1] === "2") {
-      repeat = 2;
+function initObject() {
+}
+
+function render(){
+    renderer.clear();
+    renderer.render(scene, camera);
+    window.requestAnimFrame(render);
+}
+
+function drawCubes() {
+    let canvases = generateCanvases();
+    for (let i = -1; i < 2; ++i)
+        for (let j = -1; j < 2; ++j)
+            for (let k = -1; k < 2; ++k) {
+                let geometry = new THREE.BoxGeometry( unit, unit, unit );
+                let material = generateMaterial(canvases, i, j, k);
+                let cube = new THREE.Mesh( geometry, material );
+                cube.position.x = i * unit;
+                cube.position.y = j * unit;
+                cube.position.z = k * unit;
+                cubes.push(cube);
+			}
+}
+function generateCanvases(){
+    let canvases = [];
+    for (let color of colors) {
+        let canvas = document.createElement('canvas');
+        let len = 64;
+        canvas.width = canvas.height = len;
+        let ctx = canvas.getContext('2d');
+        ctx.fillStyle = color;
+        ctx.fillRect(0, 0, len, len);
+        ctx.strokeStyle = "#000000";
+        ctx.lineWidth = 4;
+        ctx.strokeRect(0, 0, len, len);
+        canvases.push(canvas)
+    }
+    return canvases;
+}
+function generateMaterial(canvases, i, j, k) {
+    let materials = [];
+    let select = [6, 6, 6, 6, 6, 6];
+    if (i === 1) select[0] = 0;
+    if (i === -1) select[1] = 1;
+    if (j === 1) select[2] = 2;
+    if (j === -1) select[3] = 3;
+    if (k === 1) select[4] = 4;
+    if (k === -1) select[5] = 5;
+    for (let index of select) {
+        let texture = new THREE.Texture(canvases[index]);
+        texture.needsUpdate = true;
+        materials.push(new THREE.MeshBasicMaterial({ map: texture}));
+    }
+    return materials;
+}
+function rotateOnX(objs, rad) {
+    let cos = Math.cos(rad);
+    let sin = Math.sin(rad);
+    for (let cube of objs) {
+        let y = cube.position.y;
+        let z = cube.position.z;
+        let quaternion = new THREE.Quaternion();
+        quaternion.setFromAxisAngle(new THREE.Vector3(1, 0, 0), rad);
+        cube.quaternion.premultiply(quaternion);
+        cube.position.y = y * cos - z * sin;
+        cube.position.z = z * cos + y * sin;
+    }
+}
+function rotateOnY(objs, rad) {
+    let cos = Math.cos(rad);
+    let sin = Math.sin(rad);
+    for (let cube of objs) {
+        let x = cube.position.x;
+        let z = cube.position.z;
+        let quaternion = new THREE.Quaternion();
+        quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), rad);
+        cube.quaternion.premultiply(quaternion);
+        cube.position.z = z * cos - x * sin;
+        cube.position.x = x * cos + z * sin;
+    }
+}
+function rotateOnZ(objs, rad) {
+    let cos = Math.cos(rad);
+    let sin = Math.sin(rad);
+    for (let cube of objs) {
+        let x = cube.position.x;
+        let y = cube.position.y;
+        let quaternion = new THREE.Quaternion();
+        quaternion.setFromAxisAngle(new THREE.Vector3(0, 0, 1), rad);
+        cube.quaternion.premultiply(quaternion);
+        cube.position.x = x * cos - y * sin;
+        cube.position.y = y * cos + x * sin;
+    }
+}
+
+function OP(op, rad) {
+    let objs = [];
+    let axis;
+    switch(op) {
+        case 'R':
+            for (let cube of cubes) {
+                if (appro(cube.position.x, unit)) 
+                objs.push(cube);
+            }
+            axis = 'X';
+            break;
+        case 'L':
+            for (let cube of cubes) {
+                if (appro(cube.position.x, -unit)) 
+                objs.push(cube);
+            }
+            axis = 'X';
+            break;
+        case 'U':
+            for (let cube of cubes) {
+                if (appro(cube.position.y, unit)) 
+                objs.push(cube);
+            }
+            axis = 'Y';
+            break;
+        case 'D':
+            for (let cube of cubes) {
+                if (appro(cube.position.y, -unit)) 
+                objs.push(cube);
+            }
+            axis = 'Y';
+            break;
+        case 'F':
+            for (let cube of cubes) {
+                if (appro(cube.position.z, unit)) 
+                objs.push(cube);
+            }
+            axis = 'Z';
+            break;
+        case 'B':
+            for (let cube of cubes) {
+                if (appro(cube.position.z, -unit)) 
+                objs.push(cube);
+            }
+            axis = 'Z';
+            break;
+    }
+    window.requestAnimFrame(function(timestamp){rotate(objs,axis,rad,timestamp,0);});
+}
+function rotate(objs, axis, rad, now, start, last){
+    let total = 300 * Math.abs(rad);
+    if (start === 0) {
+        start = now;
+        last = now;
+    }
+    if (now - start > total) {
+        now = start + total;
+        canRotate = true;
+    }
+    switch(axis) {
+        case 'X': rotateOnX(objs, (now - last) / total * rad); break;
+        case 'Y': rotateOnY(objs, (now - last) / total * rad); break;
+        case 'Z': rotateOnZ(objs, (now - last) / total * rad); break;
+    }
+    if (now - start < total){
+         window.requestAnimFrame(function(timestamp){rotate(objs, axis, rad, timestamp,start,now);});
+    }
+}
+
+function appro(lhs, rhs) { return Math.abs(lhs - rhs) < 1;}
+
+function handleKeyDown(evt) {
+    if (canRotate) {
+        canRotate = false;
+        switch(evt.keyCode) {
+            case 82: OP('R', - Math.PI / 2);break;
+            case 76: OP('L', - Math.PI / 2);break;
+            case 85: OP('U', - Math.PI / 2);break;
+            case 68: OP('D', - Math.PI / 2);break;
+            case 70: OP('F', - Math.PI / 2);break;
+            case 66: OP('B', - Math.PI / 2);break;
+            default: canRotate = true;
+        }
+    }
+}
+function getIntersectCube(x, y) {
+    let mouse = new THREE.Vector2();
+    mouse.x = x;
+    mouse.y = y;
+    raycaster.setFromCamera(mouse, camera);
+    let cubes = raycaster.intersectObjects(scene.children);
+    return cubes.length > 0 ? cubes[0] : null;
+}
+var last = {
+    total:0,
+    x:0,
+    y:0,
+    flag:false,
+    flag2:false,
+    objs: [],
+    main: '',
+    point: '',//the intersect point in which face? x or y or z
+    axis: '',//the rotating axis
+    sgn: 1,
+    intersectPoint:null,
+}
+function handleMouseDown(evt) {
+    let cube = getIntersectCube((event.clientX / width) * 2 - 1, -(event.clientY / height) * 2 + 1);
+    if (cube !== null) {
+        last.intersectPoint = cube.point;
+        if (appro(Math.abs(cube.point.x), unit * 1.5))
+            last.point = 'X';
+        else if (appro(Math.abs(cube.point.y), unit * 1.5))
+            last.point = 'Y';
+        else if (appro(Math.abs(cube.point.z), unit * 1.5))
+            last.point = 'Z';
+        last.x = event.clientX;
+        last.y = event.clientY;
+        last.flag = true;
+//        controller.enableRotate = false;
     } else {
-      repeat = 3;
+        last.x = event.clientX;
+        last.y = event.clientY;
+        last.flag2 = true;
     }
-    for (let i = 0; i < repeat; ++i) {
-      this.implement(face);
-    }
-    return this;
-  }
-
-  U() {this.rotate("U")};
-  D() {this.rotate("D")};
-  F() {this.rotate("F")};
-  B() {this.rotate("B")};
-  L() {this.rotate("L")};
-  R() {this.rotate("R")};
-
-  implement(face) {
-    // see what initial cube will turn to be
-    let ref = this.rotation[face];
-    this.moveCorner(ref);
-    this.moveEdge(ref);
-  }
-
-  // move: we have a cube: ref, which is transformed from the initial
-  // cube through a series of magic tranformations.
-  // Now we want to apply the same 
-  // transformations on this cube, what will this cube become to?
-
-  // only concentrate on corner
-  moveCorner(ref) {
-    let newCp = [];
-    let newCo = [];
-    for (let to = 0; to < cornerNum; ++to) { // for each position
-      // "from" is the patch at position "to" (cube: other).
-      // Remeber that patch "from" was at position "from" initially,
-      // we can say that, after the magic tranformations, the patch "from"
-      // was moved from initial position "from" to the current position "to".
-      // Similarly, if we apply the same tranformations on this cube, 
-      // the patch now at position "from" will also be moved to position "to",
-      // so we have the sentences below
-      let from = ref.cp[to];
-      newCp[to] = this.cp[from];
-      newCo[to] = (this.co[from] + ref.co[to]) % 3;
-    }
-    this.cp = newCp;
-    this.co = newCo;
-  }
-
-  // only concentrate on edges
-  moveEdge(ref) {
-    let newEp = [];
-    let newEo = []
-    for (let to = 0; to < edgeNum; ++to) {
-      let from = ref.ep[to];
-      newEp[to] = this.ep[from];
-      newEo[to] = (this.eo[from] + ref.eo[to]) % 2;
-    }
-    this.ep = newEp;
-    this.eo = newEo;
-  }
-
-  shift(str, repeat) {
-    for (let i = 0; i < repeat; ++i) {
-      let back = str.substring(0, str.length - 1);
-      str = str[str.length - 1];
-      str += back;
-    }
-    return str;
-  }
-
-  // what the color distribution become after rotation?
-  getCornerName(num) {
-    let patch = this.cp[num];
-    let name = cornerName[patch];
-    let ori = this.co[num];
-    return this.shift(name, ori);
-  }
-
-  getEdgeName(num) {
-    let patch = this.ep[num];
-    let name = edgeName[patch];
-    let ori = this.eo[num];
-    return this.shift(name, ori);
-  }
-
-  // assign color with name
-  assignColor() {
-    let name = arguments[arguments.length-1]; // color distribution
-    for (let i = 0; i < name.length; ++i) {// for each color to be assigned
-      let array = arguments[i * 2];
-      let index = arguments[i * 2 + 1];
-      array[index] = name[i];
-    }
-  }
-
-  //
-  // +------------+
-  // | F0  F1  F2 |
-  // |            |
-  // | F3  F4  F5 |
-  // |            |
-  // | F6  F7  F8 |
-  // +------------+
-  //
-  // initial status
-  // [URF, UFL, ULB, UBR, DFR, DLF, DBL, DRB]
-  // [UR, UF, UL, UB, DR, DF, DL, DB, FR, FL, BL, BR]
-  export() {
-    let entity = new Object();
-    entity.F = [];
-    entity.B = [];
-    entity.U = [];
-    entity.D = [];
-    entity.L = [];
-    entity.R = [];
-
-    // assignm color for corners
-    this.assignColor(entity.U, 8, entity.R, 0, entity.F, 2, this.getCornerName(0));
-    this.assignColor(entity.U, 6, entity.F, 0, entity.L, 2, this.getCornerName(1));
-    this.assignColor(entity.U, 0, entity.L, 0, entity.B, 2, this.getCornerName(2));
-    this.assignColor(entity.U, 2, entity.B, 0, entity.R, 2, this.getCornerName(3));
-    this.assignColor(entity.D, 2, entity.F, 8, entity.R, 6, this.getCornerName(4));
-    this.assignColor(entity.D, 0, entity.L, 8, entity.F, 6, this.getCornerName(5));
-    this.assignColor(entity.D, 6, entity.B, 8, entity.L, 6, this.getCornerName(6));
-    this.assignColor(entity.D, 8, entity.R, 8, entity.B, 6, this.getCornerName(7));
-
-    //assign color for edges
-    this.assignColor(entity.U, 5, entity.R, 1, this.getEdgeName(0));
-    this.assignColor(entity.U, 7, entity.F, 1, this.getEdgeName(1));
-    this.assignColor(entity.U, 3, entity.L, 1, this.getEdgeName(2));
-    this.assignColor(entity.U, 1, entity.B, 1, this.getEdgeName(3));
-    this.assignColor(entity.D, 5, entity.R, 7, this.getEdgeName(4));
-    this.assignColor(entity.D, 1, entity.F, 7, this.getEdgeName(5));
-    this.assignColor(entity.D, 3, entity.L, 7, this.getEdgeName(6));
-    this.assignColor(entity.D, 7, entity.B, 7, this.getEdgeName(7));
-    this.assignColor(entity.F, 5, entity.R, 3, this.getEdgeName(8));
-    this.assignColor(entity.F, 3, entity.L, 5, this.getEdgeName(9));
-    this.assignColor(entity.B, 5, entity.L, 3, this.getEdgeName(10));
-    this.assignColor(entity.B, 3, entity.R, 5, this.getEdgeName(11));
-
-    entity.B[4] = "B";
-    entity.F[4] = "F";
-    entity.U[4] = "U";
-    entity.D[4] = "D";
-    entity.L[4] = "L";
-    entity.R[4] = "R";
-
-    return entity;
-  }
 }
-
-
-
+function handleMouseUp(evt) {
+    if (last.flag === true) {
+        last.flag = false;
+//        controller.enableRotate = true;
+        let sgn = last.total > 0 ? 1 : -1;
+        let count = sgn * last.total / 100 / Math.PI;
+        count = (count - Math.floor(count) > 0.25) ? Math.floor(count) + 1 : Math.floor(count);
+        let correct = sgn * count * 100 * Math.PI;
+        let objs = [];
+        for (let cube of last.objs)
+             objs.push(cube);
+        let rad = (correct - last.total) / 200;
+        let axis = last.axis;
+        window.requestAnimFrame(function(timestamp){rotate(objs,axis,rad,timestamp,0);});
+        last.total = 0;
+        last.objs.splice(0, last.objs.length);
+        last.main='';
+        last.point='';
+        last.axis='';
+        last.intersectPoint = null;
+    }
+    if (last.flag2) {
+        last.flag2 = false;
+        let axis = last.axis;
+        let rad = Math.PI / 2 * last.sgn;
+        window.requestAnimFrame(function(timestamp){rotate(cubes,axis,rad,timestamp,0);});
+        last.axis = '';
+    }
+}
+function handleMouseMove(evt) {
+    if (last.flag) {
+        let diff = 0;
+        switch (last.main) {
+            case 'X': diff = evt.clientX - last.x; last.x = evt.clientX; break;
+            case 'Y': diff = evt.clientY - last.y; last.y = evt.clientY; break;
+            default://need improvement
+                let dx = evt.clientX - last.x;
+                let dy = evt.clientY - last.y;
+                if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
+                let cube = getIntersectCube((event.clientX / width) * 2 - 1, -(event.clientY / height) * 2 + 1);
+                if (cube === null) return;
+                let ddx = Math.abs(cube.point.x - last.intersectPoint.x);
+                let ddy = Math.abs(cube.point.y - last.intersectPoint.y);
+                let ddz = Math.abs(cube.point.z - last.intersectPoint.z);
+                diff = dx > dy ? dx : dy;
+                last.main = Math.abs(dx) > Math.abs(dy) ? 'X' : 'Y';
+                 switch(last.point) {
+                     case 'X': last.axis = ddz < ddy ? 'Z' : 'Y'; break;
+                     case 'Y': last.axis = ddx < ddz ? 'X' : 'Z'; break;
+                     case 'Z': last.axis = ddx < ddy ? 'X' : 'Y'; break;
+                 }
+                switch (last.axis) {
+                    case 'X':
+                        let x = Math.round(last.intersectPoint.x / 50) * 50;
+                        for (let cube of cubes) {
+                            if (appro(cube.position.x, x))
+                                last.objs.push(cube);
+                        }
+                        last.sgn = 1;
+                        //last.sgn = appro(last.intersectPoint.z, -1.5 * unit) || appro(last.intersectPoint.y, 1.5 * unit)? -1 : 1
+                        break;
+                    case 'Y':
+                        let y = Math.round(last.intersectPoint.y / 50) * 50;
+                        for (let cube of cubes) {
+                            if (appro(cube.position.y, y))
+                                last.objs.push(cube);
+                        }
+                        last.sgn = 1;
+                        break;
+                    case 'Z':
+                        let z = Math.round(last.intersectPoint.z / 50) * 50;
+                        for (let cube of cubes) {
+                            if (appro(cube.position.z, z))
+                                last.objs.push(cube);
+                        }
+                        last.sgn = -1;
+                        //last.sgn = appro(last.intersectPoint.y, 1.5 * unit) || appro(last.intersectPoint.x, 1.5 * unit) ? -1 : 1;
+                        break;
+                }
+        }
+        diff *= last.sgn;
+        last.total += diff;
+        switch(last.axis) {
+            case 'X': rotateOnX(last.objs, diff / 200);break;
+            case 'Y': rotateOnY(last.objs, diff / 200);break;
+            case 'Z': rotateOnZ(last.objs, diff / 200);break;
+        }
+    }
+    if (last.flag2) {
+        let dx = evt.clientX - last.x;
+        let dy = evt.clientY - last.y;
+        if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
+        if (Math.abs(dx) > Math.abs(dy)) {
+            last.axis = 'Y';
+            last.sgn = dx > 0 ? 1 : -1;
+        } else {
+            last.sgn = dy > 0 ? 1 : -1;
+            if (evt.clientX < width / 2) {
+                last.axis = 'X';
+            } else {
+                last.axis = 'Z';
+                last.sgn = -last.sgn;
+            }
+        }
+    }
+}
 
