@@ -262,6 +262,7 @@ var last = {
     main: '',
     point: '',//the intersect point in which face? x or y or z
     axis: '',//the rotating axis
+    sgn: 1,
     intersectPoint:null,
 }
 function handleMouseDown(evt) {
@@ -308,14 +309,19 @@ function handleMouseMove(evt) {
             default://need improvement
                 let dx = evt.clientX - last.x;
                 let dy = evt.clientY - last.y;
-                if (dx < 10 && dy < 10) break;
+                if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
+                let cube = getIntersectCube((event.clientX / width) * 2 - 1, -(event.clientY / height) * 2 + 1);
+                if (cube === null) return;
+                let ddx = Math.abs(cube.point.x - last.intersectPoint.x);
+                let ddy = Math.abs(cube.point.y - last.intersectPoint.y);
+                let ddz = Math.abs(cube.point.z - last.intersectPoint.z);
                 diff = dx > dy ? dx : dy;
                 last.main = Math.abs(dx) > Math.abs(dy) ? 'X' : 'Y';
-                switch(last.point) {
-                    case 'X': last.axis = last.main === 'Y' ? 'Z' : 'Y'; break;
-                    case 'Y': last.axis = last.main === 'Y' ? 'X' : 'Z'; break;
-                    case 'Z': last.axis = last.main === 'Y' ? 'X' : 'Y'; break;
-                }
+                 switch(last.point) {
+                     case 'X': last.axis = ddz < ddy ? 'Z' : 'Y'; break;
+                     case 'Y': last.axis = ddx < ddz ? 'X' : 'Z'; break;
+                     case 'Z': last.axis = ddx < ddy ? 'X' : 'Y'; break;
+                 }
                 switch (last.axis) {
                     case 'X':
                         let x = Math.round(last.intersectPoint.x / 50) * 50;
@@ -323,6 +329,7 @@ function handleMouseMove(evt) {
                             if (appro(cube.position.x, x))
                                 last.objs.push(cube);
                         }
+                        last.sgn = appro(last.intersectPoint.z, -1.5 * unit) || appro(last.intersectPoint.y, 1.5 * unit)? -1 : 1
                         break;
                     case 'Y':
                         let y = Math.round(last.intersectPoint.y / 50) * 50;
@@ -330,6 +337,7 @@ function handleMouseMove(evt) {
                             if (appro(cube.position.y, y))
                                 last.objs.push(cube);
                         }
+                        last.sgn = 1;
                         break;
                     case 'Z':
                         let z = Math.round(last.intersectPoint.z / 50) * 50;
@@ -337,9 +345,14 @@ function handleMouseMove(evt) {
                             if (appro(cube.position.z, z))
                                 last.objs.push(cube);
                         }
+                        last.sgn = appro(last.intersectPoint.y, 1.5 * unit) || appro(last.intersectPoint.x, 1.5 * unit) ? -1 : 1;
                         break;
                 }
+                    //console.info(last.intersectPoint.x + ' ' + last.intersectPoint.y + ' ' + last.intersectPoint.z )
+                    //console.info("ddx: " + ddx);
+                    //console.info("sgn: " + last.sgn);
         }
+        diff *= last.sgn;
         last.total += diff;
         switch(last.axis) {
             case 'X': rotateOnX(last.objs, diff / 200);break;
