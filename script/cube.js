@@ -47,10 +47,13 @@ function initThree() {
 
 function initCamera() {
     camera = new THREE.PerspectiveCamera(45, width / height, 1, 1000);
-    camera.position.z = 600;
-    camera.up.y = 1;
-    controller = new THREE.OrbitControls(camera, render.domElement);
-    controller.target = new THREE.Vector3(0, 0, -75);
+    camera.position.x = 400;
+    camera.position.y = 300;
+    camera.position.z = 500;
+    camera.lookAt({x:0,y:0,z:0});
+//    camera.up.y = 1;
+//    controller = new THREE.OrbitControls(camera, render.domElement);
+//    controller.target = new THREE.Vector3(0, 0, -75);
 }
 
 function initScene() {
@@ -258,6 +261,7 @@ var last = {
     x:0,
     y:0,
     flag:false,
+    flag2:false,
     objs: [],
     main: '',
     point: '',//the intersect point in which face? x or y or z
@@ -278,14 +282,21 @@ function handleMouseDown(evt) {
         last.x = event.clientX;
         last.y = event.clientY;
         last.flag = true;
-        controller.enableRotate = false;
+//        controller.enableRotate = false;
+    } else {
+        last.x = event.clientX;
+        last.y = event.clientY;
+        last.flag2 = true;
     }
 }
 function handleMouseUp(evt) {
     if (last.flag === true) {
         last.flag = false;
-        controller.enableRotate = true;
-        let correct = Math.round(last.total / 100 / Math.PI) * 100 * Math.PI;  //can change 
+//        controller.enableRotate = true;
+        let sgn = last.total > 0 ? 1 : -1;
+        let count = sgn * last.total / 100 / Math.PI;
+        count = (count - Math.floor(count) > 0.25) ? Math.floor(count) + 1 : Math.floor(count);
+        let correct = sgn * count * 100 * Math.PI;
         let objs = [];
         for (let cube of last.objs)
              objs.push(cube);
@@ -298,6 +309,13 @@ function handleMouseUp(evt) {
         last.point='';
         last.axis='';
         last.intersectPoint = null;
+    }
+    if (last.flag2) {
+        last.flag2 = false;
+        let axis = last.axis;
+        let rad = Math.PI / 2 * last.sgn;
+        window.requestAnimFrame(function(timestamp){rotate(cubes,axis,rad,timestamp,0);});
+        last.axis = '';
     }
 }
 function handleMouseMove(evt) {
@@ -329,7 +347,8 @@ function handleMouseMove(evt) {
                             if (appro(cube.position.x, x))
                                 last.objs.push(cube);
                         }
-                        last.sgn = appro(last.intersectPoint.z, -1.5 * unit) || appro(last.intersectPoint.y, 1.5 * unit)? -1 : 1
+                        last.sgn = 1;
+                        //last.sgn = appro(last.intersectPoint.z, -1.5 * unit) || appro(last.intersectPoint.y, 1.5 * unit)? -1 : 1
                         break;
                     case 'Y':
                         let y = Math.round(last.intersectPoint.y / 50) * 50;
@@ -345,12 +364,10 @@ function handleMouseMove(evt) {
                             if (appro(cube.position.z, z))
                                 last.objs.push(cube);
                         }
-                        last.sgn = appro(last.intersectPoint.y, 1.5 * unit) || appro(last.intersectPoint.x, 1.5 * unit) ? -1 : 1;
+                        last.sgn = -1;
+                        //last.sgn = appro(last.intersectPoint.y, 1.5 * unit) || appro(last.intersectPoint.x, 1.5 * unit) ? -1 : 1;
                         break;
                 }
-                    //console.info(last.intersectPoint.x + ' ' + last.intersectPoint.y + ' ' + last.intersectPoint.z )
-                    //console.info("ddx: " + ddx);
-                    //console.info("sgn: " + last.sgn);
         }
         diff *= last.sgn;
         last.total += diff;
@@ -360,4 +377,22 @@ function handleMouseMove(evt) {
             case 'Z': rotateOnZ(last.objs, diff / 200);break;
         }
     }
+    if (last.flag2) {
+        let dx = evt.clientX - last.x;
+        let dy = evt.clientY - last.y;
+        if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
+        if (Math.abs(dx) > Math.abs(dy)) {
+            last.axis = 'Y';
+            last.sgn = dx > 0 ? 1 : -1;
+        } else {
+            last.sgn = dy > 0 ? 1 : -1;
+            if (evt.clientX < width / 2) {
+                last.axis = 'X';
+            } else {
+                last.axis = 'Z';
+                last.sgn = -last.sgn;
+            }
+        }
+    }
 }
+
