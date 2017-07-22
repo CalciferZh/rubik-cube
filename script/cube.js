@@ -1,3 +1,6 @@
+//if you are draging in cubes, both click are accepted
+//if you are draging in background, left-click means view, right-click means rotate whole cube
+
 var renderer;
 var width;
 var height;
@@ -53,8 +56,8 @@ function initCamera() {
     camera.lookAt({x:0,y:0,z:0});
 //    camera.up.y = 1;
      controller = new THREE.OrbitControls(camera, render.domElement);
-    // controller.target = new THREE.Vector3(0, 0, -75);
-     controller.enableRotate=false;
+     controller.enableRotate = false;
+     controller.enablePan = false;
 }
 
 function initScene() {
@@ -234,7 +237,7 @@ function rotate(objs, axis, rad, now, start, last){
          window.requestAnimFrame(function(timestamp){rotate(objs, axis, rad, timestamp,start,now);});
     }
 }
-function cameraRotate(vec, now, start, last){
+function cameraRotate(axis, rad, now, start, last){
     let total = 500;
     if (start === 0) {
         start = now;
@@ -242,15 +245,12 @@ function cameraRotate(vec, now, start, last){
     }
     if (now - start > total) {
         now = start + total;
+        canRotate = true;
     }
-    let y = camera.position.y + vec.y * (now - last) / total;
-    let z = camera.position.z + vec.z * (now - last) / total;
-    camera.position.x = Math.sqrt(500000 - y * y - z * z);
-    camera.position.y = y;
-    camera.position.z = z;
+    camera.position.applyAxisAngle(axis, rad * (now - last) / total) ;
     controller.update();
     if (now - start < total){
-        requestAnimationFrame(function(timestamp){cameraRotate(vec, timestamp,start,now);});
+        requestAnimationFrame(function(timestamp){cameraRotate(axis, rad, timestamp,start,now);});
     }
 }
 
@@ -280,10 +280,6 @@ var last = {//use for mouseevent, store the infomation about rotation and mouse 
 }
 
 function handleKeyDown(evt) {
-    if (evt.keyCode === 86) {
-        canRotate = controller.enableRotate;
-        controller.enableRotate = !controller.enableRotate;
-    }
     if (canRotate) {
         let sgn = evt.ctrlKey === true ? 1 : -1;
         switch(evt.keyCode) {
@@ -298,6 +294,12 @@ function handleKeyDown(evt) {
 }
 
 function handleMouseDown(evt) {
+    if (evt.button === 2) {
+        controller.enableRotate = false;
+        last.x = event.clientX;
+        last.y = event.clientY;
+        last.rotatingAllCubes = true;
+    }
     if (!canRotate)return;
     canRotate = false;
     let cube = getIntersectCube((event.clientX / width) * 2 - 1, -(event.clientY / height) * 2 + 1);
@@ -312,14 +314,20 @@ function handleMouseDown(evt) {
         last.x = event.clientX;
         last.y = event.clientY;
         last.rotatingNineCubes = true;
-    } else {//pointing to the background
-        last.x = event.clientX;
-        last.y = event.clientY;
-        last.rotatingAllCubes = true;
-    }
+        controller.enableRotate = false;
+    } 
 }
 function handleMouseUp(evt) {
-    if (last.rotatingNineCubes === true) {
+    if (controller.enableRotate) {
+        let vec1 = new THREE.Vector3(400, 300, 500).normalize();
+        let vec2 = camera.position.clone().normalize();
+        let rad = Math.acos(vec1.dot(vec2));
+        let axis = vec2.cross(vec1).normalize();
+        requestAnimationFrame(function(timestamp){cameraRotate(axis, rad, timestamp,0);});
+        return;
+    }
+    controller.enableRotate = true;
+    if (last.rotatingNineCubes) {
         last.rotatingNineCubes = false;
         let sgn = last.total > 0 ? 1 : -1;
         let count = sgn * last.total / 100 / Math.PI;
@@ -345,11 +353,7 @@ function handleMouseUp(evt) {
         window.requestAnimFrame(function(timestamp){rotate(cubes,axis,rad,timestamp,0);});
         last.axis = '';
     }
-    if (controller.enableRotate) {
-        let vec = new THREE.Vector3(400 - camera.position.x, 300 - camera.position.y, 500 - camera.position.z);
-        console.info(vec.x, vec.y, vec.z);
-        requestAnimationFrame(function(timestamp){cameraRotate(vec, timestamp,0);});
-    }
+
 }
 
 function handleMouseMove(evt) {
