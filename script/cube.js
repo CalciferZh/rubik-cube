@@ -3,7 +3,7 @@ var width;
 var height;
 var unit = 50;
 var cubes = [];
-var colors = ['#60ff50', '#30a0ff', '#efff50', '#ffffff', '#ffa000', '#ff0000', '#000000'];//green blue yellow white orange red
+var colors = ['#30a0ff', '#60ff50', '#ff0000', '#ffa000', '#efff50','#ffffff', '#000000'];//blue green red orange yellow white
 var canvases;
 
 var camera;
@@ -399,35 +399,83 @@ function handleMouseMove(evt) {
 function modeling() {
     let clockwise = 1;
     let anticlockwise = 2;
+    let cp = [0, 0, 0, 0, 0, 0, 0, 0];
     let co = [0, 0, 0, 0, 0, 0, 0, 0];
-    let eo = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    let ep = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    let eo = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; 
     for (let cube of cubes) {
         let x = Math.round(cube.position.x / unit);
         let y = Math.round(cube.position.y / unit);
         let z = Math.round(cube.position.z / unit);
         let direction = getDirection(cube);
-        let value;
+        let orientation;
+        let kind = getKind(cube);
         if (Math.abs(x) + Math.abs(y) + Math.abs(z) === 3) {
-            if (direction === 'y') value = 0;
+            if (direction === 'y') orientation = 0;
             else {
                 if ((x * y * z === 1 && direction === 'x') || (x * y * z === -1 && direction === 'z'))
-                    value = clockwise;
+                    orientation = clockwise;
                 else
-                    value = anticlockwise;
+                    orientation = anticlockwise;
             }
-            let loc = getCOloc(x, y, z);
-            co[loc] = value;
+            let loc = getCornelLoc(x, y, z);
+            co[loc] = orientation;
+            cp[loc] = kind;
         } else if (Math.abs(x) + Math.abs(y) + Math.abs(z) === 2) {
             if (y === 0)
-                value = (direction === 'z') ? 0 : 1;
+                orientation = (direction === 'z') ? 0 : 1;
             else
-                value = (direction === 'y') ? 0 : 1;
-            let loc = getEOloc(x, y, z);
-            eo[loc] = value;
+                orientation = (direction === 'y') ? 0 : 1;
+            let loc = getEdgeLoc(x, y, z);
+            eo[loc] = orientation;
+            ep[loc] = kind;
         }
     }
+    for (let x of cp) console.info(x);
     for (let x of co) console.info(x);
+    for (let x of ep) console.info(x);
     for (let x of eo) console.info(x);
+}
+function getKind(cube) {
+    let colorIndexs = [];
+    for (let i = 0; i < 6; ++i)
+        for (let j = 0; j < 6; ++j) {
+            if (canvases[i] === cube.material[j].map.image) {
+                colorIndexs.push(i);
+                break;
+            }
+        }
+    if (colorIndexs.length === 2) {
+        if (colorIndexs[0] === 0) {
+            if (colorIndexs[1] === 4) return 0;
+            if (colorIndexs[1] === 2) return 1;
+            if (colorIndexs[1] === 5) return 2;
+            if (colorIndexs[1] === 3) return 3;
+        }
+        if (colorIndexs[0] === 1) {
+            if (colorIndexs[1] === 4) return 4;
+            if (colorIndexs[1] === 2) return 5;
+            if (colorIndexs[1] === 5) return 6;
+            if (colorIndexs[1] === 3) return 7;
+        }
+        if (colorIndexs[0] === 2) {
+            if (colorIndexs[1] === 4) return 8;
+            if (colorIndexs[1] === 5) return 9;
+        }
+        if (colorIndexs[0] === 3) {
+            if (colorIndexs[1] === 5) return 10;
+            if (colorIndexs[1] === 4) return 11;
+        }
+    } else {
+        if (colorIndexs[0] === 0 && colorIndexs[1] === 2 && colorIndexs[2] === 4) return 0;
+        if (colorIndexs[0] === 0 && colorIndexs[1] === 2 && colorIndexs[2] === 5) return 1;
+        if (colorIndexs[0] === 0 && colorIndexs[1] === 3 && colorIndexs[2] === 5) return 2;
+        if (colorIndexs[0] === 0 && colorIndexs[1] === 3 && colorIndexs[2] === 4) return 3;
+        if (colorIndexs[0] === 1 && colorIndexs[1] === 2 && colorIndexs[2] === 4) return 4;
+        if (colorIndexs[0] === 1 && colorIndexs[1] === 2 && colorIndexs[2] === 5) return 5;
+        if (colorIndexs[0] === 1 && colorIndexs[1] === 3 && colorIndexs[2] === 5) return 6;
+        if (colorIndexs[0] === 1 && colorIndexs[1] === 3 && colorIndexs[2] === 4) return 7;
+    }
 }
 function getDirection(cube) {//blue & green first, red & orange second, white & yellow last. return 'x','y','z'
     let masterMaterialIndex = -1;
@@ -437,7 +485,7 @@ function getDirection(cube) {//blue & green first, red & orange second, white & 
     }
     if　(masterMaterialIndex === -1)
         for (let i = 0; i < 6; ++i) {
-            if (cube.material[i].map.image === canvases[4] || cube.material[i].map.image === canvases[5])
+            if (cube.material[i].map.image === canvases[2] || cube.material[i].map.image === canvases[3])
                 masterMaterialIndex = i;
         }
     for (let i = 0; i < 12; i += 2) {
@@ -457,7 +505,7 @@ function getDirection(cube) {//blue & green first, red & orange second, white & 
         }
     }
 }
-function getCOloc(x, y, z) {
+function getCornelLoc(x, y, z) {
     if (x === 1 && y === 1 && z === 1) return 0;
     if (x === -1 && y === 1 && z === 1) return 1;
     if (x === -1 && y === 1 && z === -1) return 2;
@@ -467,7 +515,7 @@ function getCOloc(x, y, z) {
     if (x === -1 && y === -1 && z === -1) return 6;
     if (x === 1 && y === -1 && z === -1) return 7; 
 }
-function getEOloc(x, y, z) {
+function getEdgeLoc(x, y, z) {
     if (x === 1 && y === 1 && z === 0) return 0;
     if (x === 0 && y === 1 && z === 1) return 1;
     if (x === -1 && y === 1 && z === 0) return 2;
