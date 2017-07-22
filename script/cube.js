@@ -3,7 +3,8 @@ var width;
 var height;
 var unit = 50;
 var cubes = [];
-var colors = ['#60ff50', '#30a0ff', '#efff50', '#ffffff', '#ffa000', '#ff0000', '#000000'];
+var colors = ['#60ff50', '#30a0ff', '#efff50', '#ffffff', '#ffa000', '#ff0000', '#000000'];//green blue yellow white orange red
+var canvases;
 
 var camera;
 var controller;
@@ -77,17 +78,18 @@ function render(){
 }
 
 function drawCubes() {
-    let canvases = generateCanvases();
+//    let canvases = generateCanvases();
+    canvases = generateCanvases();
     for (let i = -1; i < 2; ++i)
         for (let j = -1; j < 2; ++j)
             for (let k = -1; k < 2; ++k) {
-                let geometry = new THREE.BoxGeometry( unit, unit, unit );
+                let geometry = new THREE.BoxGeometry(unit, unit, unit);
                 let material = generateMaterial(canvases, i, j, k);
-                let cube = new THREE.Mesh( geometry, material );
+                let cube = new THREE.Mesh(geometry, material);
                 cube.position.x = i * unit;
                 cube.position.y = j * unit;
                 cube.position.z = k * unit;
-                cubes.push(cube);
+                cubes.push(cube);               
 			}
 }
 function generateCanvases(){
@@ -323,7 +325,7 @@ function handleMouseMove(evt) {
         switch (last.main) {
             case 'X': diff = evt.clientX - last.x; last.x = evt.clientX; break;
             case 'Y': diff = evt.clientY - last.y; last.y = evt.clientY; break;
-            default://need improvement
+            default:
                 let dx = evt.clientX - last.x;
                 let dy = evt.clientY - last.y;
                 if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
@@ -393,5 +395,90 @@ function handleMouseMove(evt) {
             }
         }
     }
+}
+function modeling() {
+    let clockwise = 1;
+    let anticlockwise = 2;
+    let co = [0, 0, 0, 0, 0, 0, 0, 0];
+    let eo = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    for (let cube of cubes) {
+        let x = Math.round(cube.position.x / unit);
+        let y = Math.round(cube.position.y / unit);
+        let z = Math.round(cube.position.z / unit);
+        let direction = getDirection(cube);
+        let value;
+        if (Math.abs(x) + Math.abs(y) + Math.abs(z) === 3) {
+            if (direction === 'y') value = 0;
+            else {
+                if ((x * y * z === 1 && direction === 'x') || (x * y * z === -1 && direction === 'z'))
+                    value = clockwise;
+                else
+                    value = anticlockwise;
+            }
+            let loc = getCOloc(x, y, z);
+            co[loc] = value;
+        } else if (Math.abs(x) + Math.abs(y) + Math.abs(z) === 2) {
+            if (y === 0)
+                value = (direction === 'z') ? 0 : 1;
+            else
+                value = (direction === 'y') ? 0 : 1;
+            let loc = getEOloc(x, y, z);
+            eo[loc] = value;
+        }
+    }
+    for (let x of co) console.info(x);
+    for (let x of eo) console.info(x);
+}
+function getDirection(cube) {//blue & green first, red & orange second, white & yellow last. return 'x','y','z'
+    let masterMaterialIndex = -1;
+    for (let i = 0; i < 6; ++i) {
+        if (cube.material[i].map.image === canvases[0] || cube.material[i].map.image === canvases[1])
+            masterMaterialIndex = i;
+    }
+    if　(masterMaterialIndex === -1)
+        for (let i = 0; i < 6; ++i) {
+            if (cube.material[i].map.image === canvases[4] || cube.material[i].map.image === canvases[5])
+                masterMaterialIndex = i;
+        }
+    for (let i = 0; i < 12; i += 2) {
+        if (cube.geometry.faces[i].materialIndex === masterMaterialIndex) {
+            let v1 = cube.geometry.vertices[cube.geometry.faces[i].a].clone();
+            let v2 = cube.geometry.vertices[cube.geometry.faces[i].b].clone();
+            let v3 = cube.geometry.vertices[cube.geometry.faces[i].c].clone();
+            v1.applyMatrix4(cube.matrixWorld);
+            v2.applyMatrix4(cube.matrixWorld);
+            v3.applyMatrix4(cube.matrixWorld);
+            let x = Math.abs(v1.x + v2.x + v3.x);
+            let y = Math.abs(v1.y + v2.y + v3.y);
+            let z = Math.abs(v1.z + v2.z + v3.z);
+            if (appro(x, 4.5 * unit)) return 'x';
+            if (appro(y, 4.5 * unit)) return 'y';
+            if (appro(z, 4.5 * unit)) return 'z';
+        }
+    }
+}
+function getCOloc(x, y, z) {
+    if (x === 1 && y === 1 && z === 1) return 0;
+    if (x === -1 && y === 1 && z === 1) return 1;
+    if (x === -1 && y === 1 && z === -1) return 2;
+    if (x === 1 && y === 1 && z === -1) return 3;
+    if (x === 1 && y === -1 && z === 1) return 4;
+    if (x === -1 && y === -1 && z === 1) return 5;
+    if (x === -1 && y === -1 && z === -1) return 6;
+    if (x === 1 && y === -1 && z === -1) return 7; 
+}
+function getEOloc(x, y, z) {
+    if (x === 1 && y === 1 && z === 0) return 0;
+    if (x === 0 && y === 1 && z === 1) return 1;
+    if (x === -1 && y === 1 && z === 0) return 2;
+    if (x === 0 && y === 1 && z === -1) return 3;
+    if (x === 1 && y === -1 && z === 0) return 4;
+    if (x === 0 && y === -1 && z === 1) return 5;
+    if (x === -1 && y === -1 && z === 0) return 6;
+    if (x === 0 && y === -1 && z === -1) return 7; 
+    if (x === 1 && y === 0 && z === 1) return 8;
+    if (x === -1 && y === 0 && z === 1) return 9;
+    if (x === -1 && y === 0 && z === -1) return 10;
+    if (x === 1 && y === 0 && z === -1) return 11; 
 }
 
