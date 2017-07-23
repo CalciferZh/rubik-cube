@@ -34,9 +34,13 @@ function begin() {
     initObject();
     render();
     window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('mousedown', handleMouseDown);
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('mousedown', handleStart);
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleEnd);
+    window.addEventListener('touchstart', handleStart, {passive:false});
+    window.addEventListener('touchmove', handleMove, {passive:false});
+    window.addEventListener('touchend', handleEnd, {passive:false});
+    window.addEventListener('resize', onWindowResize);
 }
 
 function initThree() {
@@ -56,8 +60,9 @@ function initCamera() {
     camera.lookAt({x:0,y:0,z:0});
 //    camera.up.y = 1;
      controller = new THREE.OrbitControls(camera, render.domElement);
-     controller.enableRotate = false;
+     controller.enableRotate = true;
      controller.enablePan = false;
+     controller.enableZoom = false;
 }
 
 function initScene() {
@@ -279,6 +284,8 @@ var last = {//use for mouseevent, store the infomation about rotation and mouse 
     intersectPoint:null,
 }
 
+
+
 function handleKeyDown(evt) {
     if (canRotate) {
         let sgn = evt.ctrlKey === true ? 1 : -1;
@@ -293,16 +300,25 @@ function handleKeyDown(evt) {
     }
 }
 
-function handleMouseDown(evt) {
-    if (evt.button === 2) {
+function handleStart(evt) {
+    let clientX, clientY;
+    if (evt.touches) {
+        evt.preventDefault();
+        clientX = evt.touches[0].clientX;
+        clientY = evt.touches[0].clientY;
+    } else {
+        clientX = evt.clientX;
+        clientY = evt.clientY;
+    }
+    if (evt.button === 2 || (evt.touches && evt.touches.length === 2)) {
         controller.enableRotate = false;
-        last.x = event.clientX;
-        last.y = event.clientY;
+        last.x = clientX;
+        last.y = clientY;
         last.rotatingAllCubes = true;
     }
     if (!canRotate)return;
     canRotate = false;
-    let cube = getIntersectCube((event.clientX / width) * 2 - 1, -(event.clientY / height) * 2 + 1);
+    let cube = getIntersectCube((clientX / width) * 2 - 1, -(clientY / height) * 2 + 1);
     if (cube !== null) {//point to the cube
         last.intersectPoint = cube.point;
         if (appro(Math.abs(cube.point.x), unit * 1.5))
@@ -311,13 +327,14 @@ function handleMouseDown(evt) {
             last.point = 'Y';
         else if (appro(Math.abs(cube.point.z), unit * 1.5))
             last.point = 'Z';
-        last.x = event.clientX;
-        last.y = event.clientY;
+        last.x = clientX;
+        last.y = clientY;
         last.rotatingNineCubes = true;
         controller.enableRotate = false;
     } 
 }
-function handleMouseUp(evt) {
+function handleEnd(evt) {
+    
     if (controller.enableRotate) {
         let vec1 = new THREE.Vector3(400, 300, 500).normalize();
         let vec2 = camera.position.clone().normalize();
@@ -353,20 +370,28 @@ function handleMouseUp(evt) {
         window.requestAnimFrame(function(timestamp){rotate(cubes,axis,rad,timestamp,0);});
         last.axis = '';
     }
-
 }
 
-function handleMouseMove(evt) {
+function handleMove(evt) {
+    let clientX, clientY;
+    if (evt.touches) {
+        evt.preventDefault();
+        clientX = evt.touches[0].clientX;
+        clientY = evt.touches[0].clientY;
+    } else {
+        clientX = evt.clientX;
+        clientY = evt.clientY;
+    }
     if (last.rotatingNineCubes) {
         let diff = 0;
         switch (last.main) {
-            case 'X': diff = evt.clientX - last.x; last.x = evt.clientX; break;
-            case 'Y': diff = evt.clientY - last.y; last.y = evt.clientY; break;
+            case 'X': diff = clientX - last.x; last.x = clientX; break;
+            case 'Y': diff = clientY - last.y; last.y = clientY; break;
             default:
-                let dx = evt.clientX - last.x;
-                let dy = evt.clientY - last.y;
+                let dx = clientX - last.x;
+                let dy = clientY - last.y;
                 if (Math.abs(dx) < 40 && Math.abs(dy) < 40) return;
-                let cube = getIntersectCube((event.clientX / width) * 2 - 1, -(event.clientY / height) * 2 + 1);
+                let cube = getIntersectCube((clientX / width) * 2 - 1, -(clientY / height) * 2 + 1);
                 if (cube === null) return;
                 let ddx = Math.abs(cube.point.x - last.intersectPoint.x);
                 let ddy = Math.abs(cube.point.y - last.intersectPoint.y);
@@ -416,8 +441,8 @@ function handleMouseMove(evt) {
         }
     }
     else if (last.rotatingAllCubes) {
-        let dx = evt.clientX - last.x;
-        let dy = evt.clientY - last.y;
+        let dx = clientX - last.x;
+        let dy = clientY - last.y;
         if (Math.abs(dx) < 40 && Math.abs(dy) < 40) return;
         if (Math.abs(dx) > Math.abs(dy)) {
             last.axis = 'Y';
@@ -433,6 +458,17 @@ function handleMouseMove(evt) {
         }
     }
 }
+function onWindowResize() {
+    width = window.innerWidth;
+    height = window.innerHeight;
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize( window.innerWidth, window.innerHeight );
+}
+            
+
+
+
 
 
 
