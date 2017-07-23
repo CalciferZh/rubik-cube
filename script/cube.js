@@ -7,7 +7,7 @@ var height;
 var unit = 50;
 var cubes = [];
 var colors = ['#30a0ff', '#60ff50', '#ff0000', '#ffa000', '#efff50','#ffffff', '#000000'];//blue green red orange yellow white
-var canvases;
+var basicMaterials;
 
 var camera;
 var controller;
@@ -88,12 +88,12 @@ function render(){
 
 function drawCubes() {
 //    let canvases = generateCanvases();
-    canvases = generateCanvases();
+    basicMaterials = generateBasicMaterials();
     for (let i = -1; i < 2; ++i)
         for (let j = -1; j < 2; ++j)
             for (let k = -1; k < 2; ++k) {
                 let geometry = new THREE.BoxGeometry(unit, unit, unit);
-                let material = generateMaterial(canvases, i, j, k);
+                let material = generateMaterial(i, j, k);
                 let cube = new THREE.Mesh(geometry, material);
                 cube.position.x = i * unit;
                 cube.position.y = j * unit;
@@ -101,8 +101,8 @@ function drawCubes() {
                 cubes.push(cube);               
 			}
 }
-function generateCanvases(){
-    let canvases = [];
+function generateBasicMaterials(){
+    let basicMaterials = [];
     for (let color of colors) {
         let canvas = document.createElement('canvas');
         let len = 64;
@@ -113,25 +113,41 @@ function generateCanvases(){
         ctx.strokeStyle = "#000000";
         ctx.lineWidth = 4;
         ctx.strokeRect(0, 0, len, len);
-        canvases.push(canvas)
+        let texture = new THREE.Texture(canvas);
+        texture.needsUpdate = true;
+        basicMaterials.push(new THREE.MeshBasicMaterial({ map: texture}));    
     }
-    return canvases;
+    return basicMaterials;
 }
-function generateMaterial(canvases, i, j, k) {
+function generateMaterial(i, j, k) {
     let materials = [];
     let select = [6, 6, 6, 6, 6, 6];
-    if (i === 1) select[0] = 0;
-    if (i === -1) select[1] = 1;
-    if (j === 1) select[2] = 2;
-    if (j === -1) select[3] = 3;
-    if (k === 1) select[4] = 4;
-    if (k === -1) select[5] = 5;
+    if (i === 1) select[0] = 4;
+    if (i === -1) select[1] = 5;
+    if (j === 1) select[2] = 0;
+    if (j === -1) select[3] = 1;
+    if (k === 1) select[4] = 2;
+    if (k === -1) select[5] = 3;
     for (let index of select) {
-        let texture = new THREE.Texture(canvases[index]);
-        texture.needsUpdate = true;
-        materials.push(new THREE.MeshBasicMaterial({ map: texture}));
+        materials.push(basicMaterials[index]);
     }
     return materials;
+}
+function redrawCube(indexes) {
+    for (let i = 0; i < 9; ++i) {
+        //[6,15,24,7,16,25,8,17,26] UP
+        cubes[Math.floor(i / 3) + 6 + 9 * (i % 3)].material[2] = basicMaterials[indexes[i]];
+        //[6,7,8,3,4,5,0,1,2] LEFT
+        cubes[Math.floor(i / 3) * 3 + (i % 3)].material[1] = basicMaterials[indexes[9 + i]];
+        //[8,17,26,5,14,23,2,11,20] FRONT
+        cubes[8 - 3 * Math.floor(i / 3) + 9 * (i % 3)].material[4] = basicMaterials[indexes[18 + i]];
+        //[26,25,24,23,22,21,20,19,18] RIGHT
+        cubes[26 - i].material[0] = basicMaterials[indexes[27 + i]];
+        //[24,15,6,21,12,3,18,9,0] BACK
+        cubes[24 - 3 * Math.floor(i / 3) - 9 * (i % 3)].material[5] = basicMaterials[indexes[36 + i]];
+        //[0,9,18,1,10,19,2,11,20] DOWN
+        cubes[Math.floor(i / 3) + 9 * (i % 3)].material[3] = basicMaterials[indexes[45 + i]];
+    }
 }
 function rotateOnX(objs, rad) {
     let cos = Math.cos(rad);
@@ -270,6 +286,7 @@ function getIntersectCube(x, y) {
     let cubes = raycaster.intersectObjects(scene.children);
     return cubes.length > 0 ? cubes[0] : null;
 }
+
 var last = {//use for mouseevent, store the infomation about rotation and mouse .
     total:0,
     x:0,
@@ -310,7 +327,8 @@ function handleStart(evt) {
         clientX = evt.clientX;
         clientY = evt.clientY;
     }
-    if (evt.button === 2 || (evt.touches && evt.touches.length === 2)) {
+    if (evt.button === 2 || (evt.touches && evt.touches.length === 2)) {//right-clike or double-finger touch
+        canRotate = false;
         controller.enableRotate = false;
         last.x = clientX;
         last.y = clientY;
@@ -319,7 +337,7 @@ function handleStart(evt) {
     if (!canRotate)return;
     canRotate = false;
     let cube = getIntersectCube((clientX / width) * 2 - 1, -(clientY / height) * 2 + 1);
-    if (cube !== null) {//point to the cube
+    if (cube !== null) {//pointing to the cube
         last.intersectPoint = cube.point;
         if (appro(Math.abs(cube.point.x), unit * 1.5))
             last.point = 'X';
@@ -334,8 +352,7 @@ function handleStart(evt) {
     } 
 }
 function handleEnd(evt) {
-    
-    if (controller.enableRotate) {
+    if (controller.enableRotate) { //set camera back after viewing
         let vec1 = new THREE.Vector3(400, 300, 500).normalize();
         let vec2 = camera.position.clone().normalize();
         let rad = Math.acos(vec1.dot(vec2));
@@ -362,8 +379,7 @@ function handleEnd(evt) {
         last.point='';
         last.axis='';
         last.intersectPoint = null;
-    }
-    if (last.rotatingAllCubes) {
+    } else if (last.rotatingAllCubes) {
         last.rotatingAllCubes = false;
         let axis = last.axis;
         let rad = Math.PI / 2 * last.sgn;
@@ -387,16 +403,16 @@ function handleMove(evt) {
         switch (last.main) {
             case 'X': diff = clientX - last.x; last.x = clientX; break;
             case 'Y': diff = clientY - last.y; last.y = clientY; break;
-            default:
+            default://not decide the direction of rotation yet
                 let dx = clientX - last.x;
                 let dy = clientY - last.y;
-                if (Math.abs(dx) < 40 && Math.abs(dy) < 40) return;
+                diff = dx > dy ? dx : dy;
+                if (Math.abs(dx) < 40 && Math.abs(dy) < 40) return;//movement is so small, not gonna update last.x or last.y
                 let cube = getIntersectCube((clientX / width) * 2 - 1, -(clientY / height) * 2 + 1);
                 if (cube === null) return;
                 let ddx = Math.abs(cube.point.x - last.intersectPoint.x);
                 let ddy = Math.abs(cube.point.y - last.intersectPoint.y);
-                let ddz = Math.abs(cube.point.z - last.intersectPoint.z);
-                diff = dx > dy ? dx : dy;
+                let ddz = Math.abs(cube.point.z - last.intersectPoint.z);           
                 last.main = Math.abs(dx) > 2 * Math.abs(dy) ? 'X' : 'Y';
                 switch(last.point) {
                      case 'X': last.axis = ddz < ddy ? 'Z' : 'Y'; break;
@@ -411,7 +427,6 @@ function handleMove(evt) {
                                 last.objs.push(cube);
                         }
                         last.sgn = 1;
-                        //last.sgn = appro(last.intersectPoint.z, -1.5 * unit) || appro(last.intersectPoint.y, 1.5 * unit)? -1 : 1
                         break;
                     case 'Y':
                         let y = Math.round(last.intersectPoint.y / 50) * 50;
@@ -428,7 +443,6 @@ function handleMove(evt) {
                                 last.objs.push(cube);
                         }
                         last.sgn = -1;
-                        //last.sgn = appro(last.intersectPoint.y, 1.5 * unit) || appro(last.intersectPoint.x, 1.5 * unit) ? -1 : 1;
                         break;
                 }
         }
@@ -439,8 +453,7 @@ function handleMove(evt) {
             case 'Y': rotateOnY(last.objs, diff / 200);break;
             case 'Z': rotateOnZ(last.objs, diff / 200);break;
         }
-    }
-    else if (last.rotatingAllCubes) {
+    } else if (last.rotatingAllCubes) {
         let dx = clientX - last.x;
         let dy = clientY - last.y;
         if (Math.abs(dx) < 40 && Math.abs(dy) < 40) return;
@@ -449,7 +462,7 @@ function handleMove(evt) {
             last.sgn = dx > 0 ? 1 : -1;
         } else {
             last.sgn = dy > 0 ? 1 : -1;
-            if (evt.clientX < width / 2) {
+            if (clientX < width / 2) {
                 last.axis = 'X';
             } else {
                 last.axis = 'Z';
@@ -521,7 +534,7 @@ function getKind(cube) {
     let colorIndexs = [];
     for (let i = 0; i < 6; ++i)
         for (let j = 0; j < 6; ++j) {
-            if (canvases[i] === cube.material[j].map.image) {
+            if (basicMaterials[i] === cube.material[j]) {
                 colorIndexs.push(i);
                 break;
             }
@@ -561,12 +574,12 @@ function getKind(cube) {
 function getDirection(cube) {//blue & green first, red & orange second, white & yellow last. return 'x','y','z'
     let masterMaterialIndex = -1;
     for (let i = 0; i < 6; ++i) {
-        if (cube.material[i].map.image === canvases[0] || cube.material[i].map.image === canvases[1])
+        if (cube.material[i] === basicMaterials[0] || cube.material[i] === basicMaterials[1])
             masterMaterialIndex = i;
     }
     if　(masterMaterialIndex === -1)
         for (let i = 0; i < 6; ++i) {
-            if (cube.material[i].map.image === canvases[2] || cube.material[i].map.image === canvases[3])
+            if (cube.material[i] === basicMaterials[2] || cube.material[i] === basicMaterials[3])
                 masterMaterialIndex = i;
         }
     for (let i = 0; i < 12; i += 2) {
