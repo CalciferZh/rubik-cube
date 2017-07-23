@@ -1,9 +1,13 @@
+//if you are draging in cubes, both click are accepted
+//if you are draging in background, left-click means view, right-click means rotate whole cube
+
 var renderer;
 var width;
 var height;
 var unit = 50;
 var cubes = [];
-var colors = ['#60ff50', '#30a0ff', '#efff50', '#ffffff', '#ffa000', '#ff0000', '#000000'];
+var colors = ['#30a0ff', '#60ff50', '#ff0000', '#ffa000', '#efff50','#ffffff', '#000000'];//blue green red orange yellow white
+var canvases;
 
 var camera;
 var controller;
@@ -51,8 +55,9 @@ function initCamera() {
     camera.position.z = 500;
     camera.lookAt({x:0,y:0,z:0});
 //    camera.up.y = 1;
-//    controller = new THREE.OrbitControls(camera, render.domElement);
-//    controller.target = new THREE.Vector3(0, 0, -75);
+     controller = new THREE.OrbitControls(camera, render.domElement);
+     controller.enableRotate = false;
+     controller.enablePan = false;
 }
 
 function initScene() {
@@ -77,17 +82,18 @@ function render(){
 }
 
 function drawCubes() {
-    let canvases = generateCanvases();
+//    let canvases = generateCanvases();
+    canvases = generateCanvases();
     for (let i = -1; i < 2; ++i)
         for (let j = -1; j < 2; ++j)
             for (let k = -1; k < 2; ++k) {
-                let geometry = new THREE.BoxGeometry( unit, unit, unit );
+                let geometry = new THREE.BoxGeometry(unit, unit, unit);
                 let material = generateMaterial(canvases, i, j, k);
-                let cube = new THREE.Mesh( geometry, material );
+                let cube = new THREE.Mesh(geometry, material);
                 cube.position.x = i * unit;
                 cube.position.y = j * unit;
                 cube.position.z = k * unit;
-                cubes.push(cube);
+                cubes.push(cube);               
 			}
 }
 function generateCanvases(){
@@ -209,6 +215,7 @@ function OP(op, rad) {
             axis = 'Z';
             break;
     }
+    canRotate = false;
     window.requestAnimFrame(function(timestamp){rotate(objs,axis,rad,timestamp,0);});
 }
 function rotate(objs, axis, rad, now, start, last){
@@ -217,7 +224,7 @@ function rotate(objs, axis, rad, now, start, last){
         start = now;
         last = now;
     }
-    if (now - start > total) {
+    if (now - start >= total) {
         now = start + total;
         canRotate = true;
     }
@@ -230,23 +237,26 @@ function rotate(objs, axis, rad, now, start, last){
          window.requestAnimFrame(function(timestamp){rotate(objs, axis, rad, timestamp,start,now);});
     }
 }
+function cameraRotate(axis, rad, now, start, last){
+    let total = 500;
+    if (start === 0) {
+        start = now;
+        last = now;
+    }
+    if (now - start > total) {
+        now = start + total;
+        canRotate = true;
+    }
+    camera.position.applyAxisAngle(axis, rad * (now - last) / total) ;
+    controller.update();
+    if (now - start < total){
+        requestAnimationFrame(function(timestamp){cameraRotate(axis, rad, timestamp,start,now);});
+    }
+}
 
 function appro(lhs, rhs) { return Math.abs(lhs - rhs) < 1;}
 
-function handleKeyDown(evt) {
-    if (canRotate) {
-        canRotate = false;
-        switch(evt.keyCode) {
-            case 82: OP('R', - Math.PI / 2);break;
-            case 76: OP('L', - Math.PI / 2);break;
-            case 85: OP('U', - Math.PI / 2);break;
-            case 68: OP('D', - Math.PI / 2);break;
-            case 70: OP('F', - Math.PI / 2);break;
-            case 66: OP('B', - Math.PI / 2);break;
-            default: canRotate = true;
-        }
-    }
-}
+
 function getIntersectCube(x, y) {
     let mouse = new THREE.Vector2();
     mouse.x = x;
@@ -255,12 +265,12 @@ function getIntersectCube(x, y) {
     let cubes = raycaster.intersectObjects(scene.children);
     return cubes.length > 0 ? cubes[0] : null;
 }
-var last = {
+var last = {//use for mouseevent, store the infomation about rotation and mouse .
     total:0,
     x:0,
     y:0,
-    flag:false,
-    flag2:false,
+    rotatingNineCubes:false,
+    rotatingAllCubes:false,
     objs: [],
     main: '',
     point: '',//the intersect point in which face? x or y or z
@@ -268,9 +278,32 @@ var last = {
     sgn: 1,
     intersectPoint:null,
 }
+
+function handleKeyDown(evt) {
+    if (canRotate) {
+        let sgn = evt.ctrlKey === true ? 1 : -1;
+        switch(evt.keyCode) {
+            case 82: OP('R', sgn * Math.PI / 2);break;
+            case 76: OP('L', sgn * Math.PI / 2);break;
+            case 85: OP('U', sgn * Math.PI / 2);break;
+            case 68: OP('D', sgn * Math.PI / 2);break;
+            case 70: OP('F', sgn * Math.PI / 2);break;
+            case 66: OP('B', sgn * Math.PI / 2);break;
+        }
+    }
+}
+
 function handleMouseDown(evt) {
+    if (evt.button === 2) {
+        controller.enableRotate = false;
+        last.x = event.clientX;
+        last.y = event.clientY;
+        last.rotatingAllCubes = true;
+    }
+    if (!canRotate)return;
+    canRotate = false;
     let cube = getIntersectCube((event.clientX / width) * 2 - 1, -(event.clientY / height) * 2 + 1);
-    if (cube !== null) {
+    if (cube !== null) {//point to the cube
         last.intersectPoint = cube.point;
         if (appro(Math.abs(cube.point.x), unit * 1.5))
             last.point = 'X';
@@ -280,18 +313,22 @@ function handleMouseDown(evt) {
             last.point = 'Z';
         last.x = event.clientX;
         last.y = event.clientY;
-        last.flag = true;
-//        controller.enableRotate = false;
-    } else {
-        last.x = event.clientX;
-        last.y = event.clientY;
-        last.flag2 = true;
-    }
+        last.rotatingNineCubes = true;
+        controller.enableRotate = false;
+    } 
 }
 function handleMouseUp(evt) {
-    if (last.flag === true) {
-        last.flag = false;
-//        controller.enableRotate = true;
+    if (controller.enableRotate) {
+        let vec1 = new THREE.Vector3(400, 300, 500).normalize();
+        let vec2 = camera.position.clone().normalize();
+        let rad = Math.acos(vec1.dot(vec2));
+        let axis = vec2.cross(vec1).normalize();
+        requestAnimationFrame(function(timestamp){cameraRotate(axis, rad, timestamp,0);});
+        return;
+    }
+    controller.enableRotate = true;
+    if (last.rotatingNineCubes) {
+        last.rotatingNineCubes = false;
         let sgn = last.total > 0 ? 1 : -1;
         let count = sgn * last.total / 100 / Math.PI;
         count = (count - Math.floor(count) > 0.25) ? Math.floor(count) + 1 : Math.floor(count);
@@ -309,32 +346,34 @@ function handleMouseUp(evt) {
         last.axis='';
         last.intersectPoint = null;
     }
-    if (last.flag2) {
-        last.flag2 = false;
+    if (last.rotatingAllCubes) {
+        last.rotatingAllCubes = false;
         let axis = last.axis;
         let rad = Math.PI / 2 * last.sgn;
         window.requestAnimFrame(function(timestamp){rotate(cubes,axis,rad,timestamp,0);});
         last.axis = '';
     }
+
 }
+
 function handleMouseMove(evt) {
-    if (last.flag) {
+    if (last.rotatingNineCubes) {
         let diff = 0;
         switch (last.main) {
             case 'X': diff = evt.clientX - last.x; last.x = evt.clientX; break;
             case 'Y': diff = evt.clientY - last.y; last.y = evt.clientY; break;
-            default://need improvement
+            default:
                 let dx = evt.clientX - last.x;
                 let dy = evt.clientY - last.y;
-                if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
+                if (Math.abs(dx) < 40 && Math.abs(dy) < 40) return;
                 let cube = getIntersectCube((event.clientX / width) * 2 - 1, -(event.clientY / height) * 2 + 1);
                 if (cube === null) return;
                 let ddx = Math.abs(cube.point.x - last.intersectPoint.x);
                 let ddy = Math.abs(cube.point.y - last.intersectPoint.y);
                 let ddz = Math.abs(cube.point.z - last.intersectPoint.z);
                 diff = dx > dy ? dx : dy;
-                last.main = Math.abs(dx) > Math.abs(dy) ? 'X' : 'Y';
-                 switch(last.point) {
+                last.main = Math.abs(dx) > 2 * Math.abs(dy) ? 'X' : 'Y';
+                switch(last.point) {
                      case 'X': last.axis = ddz < ddy ? 'Z' : 'Y'; break;
                      case 'Y': last.axis = ddx < ddz ? 'X' : 'Z'; break;
                      case 'Z': last.axis = ddx < ddy ? 'X' : 'Y'; break;
@@ -376,10 +415,10 @@ function handleMouseMove(evt) {
             case 'Z': rotateOnZ(last.objs, diff / 200);break;
         }
     }
-    if (last.flag2) {
+    else if (last.rotatingAllCubes) {
         let dx = evt.clientX - last.x;
         let dy = evt.clientY - last.y;
-        if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
+        if (Math.abs(dx) < 40 && Math.abs(dy) < 40) return;
         if (Math.abs(dx) > Math.abs(dy)) {
             last.axis = 'Y';
             last.sgn = dx > 0 ? 1 : -1;
@@ -393,5 +432,146 @@ function handleMouseMove(evt) {
             }
         }
     }
+}
+
+
+
+
+
+
+
+//use for backend.js
+function modeling() {
+    let clockwise = 1;
+    let anticlockwise = 2;
+    let cp = [0, 0, 0, 0, 0, 0, 0, 0];
+    let co = [0, 0, 0, 0, 0, 0, 0, 0];
+    let ep = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    let eo = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; 
+    for (let cube of cubes) {
+        let x = Math.round(cube.position.x / unit);
+        let y = Math.round(cube.position.y / unit);
+        let z = Math.round(cube.position.z / unit);
+        let direction = getDirection(cube);
+        let orientation;
+        let kind = getKind(cube);
+        if (Math.abs(x) + Math.abs(y) + Math.abs(z) === 3) {
+            if (direction === 'y') orientation = 0;
+            else {
+                if ((x * y * z === 1 && direction === 'x') || (x * y * z === -1 && direction === 'z'))
+                    orientation = clockwise;
+                else
+                    orientation = anticlockwise;
+            }
+            let loc = getCornelLoc(x, y, z);
+            co[loc] = orientation;
+            cp[loc] = kind;
+        } else if (Math.abs(x) + Math.abs(y) + Math.abs(z) === 2) {
+            if (y === 0)
+                orientation = (direction === 'z') ? 0 : 1;
+            else
+                orientation = (direction === 'y') ? 0 : 1;
+            let loc = getEdgeLoc(x, y, z);
+            eo[loc] = orientation;
+            ep[loc] = kind;
+        }
+    }
+    for (let x of cp) console.info(x);
+    for (let x of co) console.info(x);
+    for (let x of ep) console.info(x);
+    for (let x of eo) console.info(x);
+}
+function getKind(cube) {
+    let colorIndexs = [];
+    for (let i = 0; i < 6; ++i)
+        for (let j = 0; j < 6; ++j) {
+            if (canvases[i] === cube.material[j].map.image) {
+                colorIndexs.push(i);
+                break;
+            }
+        }
+    if (colorIndexs.length === 2) {
+        if (colorIndexs[0] === 0) {
+            if (colorIndexs[1] === 4) return 0;
+            if (colorIndexs[1] === 2) return 1;
+            if (colorIndexs[1] === 5) return 2;
+            if (colorIndexs[1] === 3) return 3;
+        }
+        if (colorIndexs[0] === 1) {
+            if (colorIndexs[1] === 4) return 4;
+            if (colorIndexs[1] === 2) return 5;
+            if (colorIndexs[1] === 5) return 6;
+            if (colorIndexs[1] === 3) return 7;
+        }
+        if (colorIndexs[0] === 2) {
+            if (colorIndexs[1] === 4) return 8;
+            if (colorIndexs[1] === 5) return 9;
+        }
+        if (colorIndexs[0] === 3) {
+            if (colorIndexs[1] === 5) return 10;
+            if (colorIndexs[1] === 4) return 11;
+        }
+    } else {
+        if (colorIndexs[0] === 0 && colorIndexs[1] === 2 && colorIndexs[2] === 4) return 0;
+        if (colorIndexs[0] === 0 && colorIndexs[1] === 2 && colorIndexs[2] === 5) return 1;
+        if (colorIndexs[0] === 0 && colorIndexs[1] === 3 && colorIndexs[2] === 5) return 2;
+        if (colorIndexs[0] === 0 && colorIndexs[1] === 3 && colorIndexs[2] === 4) return 3;
+        if (colorIndexs[0] === 1 && colorIndexs[1] === 2 && colorIndexs[2] === 4) return 4;
+        if (colorIndexs[0] === 1 && colorIndexs[1] === 2 && colorIndexs[2] === 5) return 5;
+        if (colorIndexs[0] === 1 && colorIndexs[1] === 3 && colorIndexs[2] === 5) return 6;
+        if (colorIndexs[0] === 1 && colorIndexs[1] === 3 && colorIndexs[2] === 4) return 7;
+    }
+}
+function getDirection(cube) {//blue & green first, red & orange second, white & yellow last. return 'x','y','z'
+    let masterMaterialIndex = -1;
+    for (let i = 0; i < 6; ++i) {
+        if (cube.material[i].map.image === canvases[0] || cube.material[i].map.image === canvases[1])
+            masterMaterialIndex = i;
+    }
+    if　(masterMaterialIndex === -1)
+        for (let i = 0; i < 6; ++i) {
+            if (cube.material[i].map.image === canvases[2] || cube.material[i].map.image === canvases[3])
+                masterMaterialIndex = i;
+        }
+    for (let i = 0; i < 12; i += 2) {
+        if (cube.geometry.faces[i].materialIndex === masterMaterialIndex) {
+            let v1 = cube.geometry.vertices[cube.geometry.faces[i].a].clone();
+            let v2 = cube.geometry.vertices[cube.geometry.faces[i].b].clone();
+            let v3 = cube.geometry.vertices[cube.geometry.faces[i].c].clone();
+            v1.applyMatrix4(cube.matrixWorld);
+            v2.applyMatrix4(cube.matrixWorld);
+            v3.applyMatrix4(cube.matrixWorld);
+            let x = Math.abs(v1.x + v2.x + v3.x);
+            let y = Math.abs(v1.y + v2.y + v3.y);
+            let z = Math.abs(v1.z + v2.z + v3.z);
+            if (appro(x, 4.5 * unit)) return 'x';
+            if (appro(y, 4.5 * unit)) return 'y';
+            if (appro(z, 4.5 * unit)) return 'z';
+        }
+    }
+}
+function getCornelLoc(x, y, z) {
+    if (x === 1 && y === 1 && z === 1) return 0;
+    if (x === -1 && y === 1 && z === 1) return 1;
+    if (x === -1 && y === 1 && z === -1) return 2;
+    if (x === 1 && y === 1 && z === -1) return 3;
+    if (x === 1 && y === -1 && z === 1) return 4;
+    if (x === -1 && y === -1 && z === 1) return 5;
+    if (x === -1 && y === -1 && z === -1) return 6;
+    if (x === 1 && y === -1 && z === -1) return 7; 
+}
+function getEdgeLoc(x, y, z) {
+    if (x === 1 && y === 1 && z === 0) return 0;
+    if (x === 0 && y === 1 && z === 1) return 1;
+    if (x === -1 && y === 1 && z === 0) return 2;
+    if (x === 0 && y === 1 && z === -1) return 3;
+    if (x === 1 && y === -1 && z === 0) return 4;
+    if (x === 0 && y === -1 && z === 1) return 5;
+    if (x === -1 && y === -1 && z === 0) return 6;
+    if (x === 0 && y === -1 && z === -1) return 7; 
+    if (x === 1 && y === 0 && z === 1) return 8;
+    if (x === -1 && y === 0 && z === 1) return 9;
+    if (x === -1 && y === 0 && z === -1) return 10;
+    if (x === 1 && y === 0 && z === -1) return 11; 
 }
 
