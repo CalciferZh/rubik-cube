@@ -55,21 +55,20 @@ moveRight = function(array, l, r) {
 }
 
 // Generate a function that computes permutation indices.
-//
 // The permutation index actually encodes two indices: Combination,
 // i.e. positions of the cubies start..end (A) and their respective
 // permutation (B). The maximum value for B is
-//
 //   maxB = (end - start + 1)!
-//
 // and the index is A * maxB + B
 permutationIndex = function(context, start, end, fromEnd) {
-  let maxAll, maxB, maxOur, our, permName;
+  var i, maxAll, maxB, maxOur, our, permName;
+
   if (fromEnd == null) {
     fromEnd = false;
   }
   maxOur = end - start;
   maxB = factorial(maxOur + 1);
+
   if (context === 'corners') {
     maxAll = 7;
     permName = 'cp';
@@ -77,25 +76,36 @@ permutationIndex = function(context, start, end, fromEnd) {
     maxAll = 11;
     permName = 'ep';
   }
-  our = new Int32Array(maxOur);
+
+  our = (function() {
+    let result;
+    result = [];
+    for (let i = 0; i <= maxOur; ++i) {
+      result.push(0);
+    }
+    return result;
+  })();
+
   return function(index) {
-    // reset our to [start...end]
+    let perm, x;
+
     if (index != null) {
+      // Reset our to [start..end]
       for (let i = 0; i <= maxOur; ++i) {
         our[i] = i + start;
       }
 
-      let b = index % maxB; // permutation
-      let a = index / maxB | 0; // combination
+      let a = index / maxB | 0;
+      let b = index % maxB;
 
-      // invalidate all edges
+      // Invalidate all edges
       perm = this[permName];
       for (let i = 0; i <= maxAll; ++i) {
         perm[i] = -1;
       }
 
-      // generate permutation from index b
-      for (let j = 1; j <= maxOur; ++j) {
+      // Generate permutation from index b
+      for (let j = 0; j <= maxOur; ++j) {
         let k = b % (j + 1);
         b = b / (j + 1) | 0;
         while (k > 0) {
@@ -104,69 +114,62 @@ permutationIndex = function(context, start, end, fromEnd) {
         }
       }
 
-      // generate combination and set our edges
-      let x = maxOur;
+      // Generate combination and set our edges
+      x = maxOur;
+
       if (fromEnd) {
-        for (let j = 0; j <= maxLll; ++j) {
+        for (let j = 0; j <= maxAll; ++j) {
           let c = Cnk(maxAll - j, x + 1);
           if (a - c >= 0) {
             perm[j] = our[maxOur - x];
             a -= c;
-            x--;
-          }
-
-        }
-      }
-
-      x = maxOur;
-      if (fromEnd) {
-        for (j = q = 0, ref5 = maxAll; 0 <= ref5 ? q <= ref5 : q >= ref5; j = 0 <= ref5 ? ++q : --q) {
-          c = Cnk(maxAll - j, x + 1);
-          if (a - c >= 0) {
-            perm[j] = our[maxOur - x];
-            a -= c;
-            x--;
+            --x;
           }
         }
       } else {
-        for (j = t = ref6 = maxAll; ref6 <= 0 ? t <= 0 : t >= 0; j = ref6 <= 0 ? ++t : --t) {
-          c = Cnk(j, x + 1);
+        for (let j = maxAll; j >= 0; --j) {
+          let c = Cnk(j, x + 1);
           if (a - c >= 0) {
             perm[j] = our[x];
             a -= c;
-            x--;
+            --x;
           }
         }
       }
       return this;
     } else {
       perm = this[permName];
-      for (i = u = 0, ref7 = maxOur; 0 <= ref7 ? u <= ref7 : u >= ref7; i = 0 <= ref7 ? ++u : --u) {
+      for (let i = 0; i <= maxOur; ++i) {
         our[i] = -1;
       }
       a = b = x = 0;
+
+      // Compute the index a < ((maxAll + 1) choose (maxOur + 1)) and
+      // the permutation
       if (fromEnd) {
-        for (j = w = ref8 = maxAll; ref8 <= 0 ? w <= 0 : w >= 0; j = ref8 <= 0 ? ++w : --w) {
-          if ((start <= (ref9 = perm[j]) && ref9 <= end)) {
+        for(let j = maxAll; j >= 0; --j) {
+          if (start <= perm[j] && perm[j] <= end) {
             a += Cnk(maxAll - j, x + 1);
             our[maxOur - x] = perm[j];
-            x++;
+            ++x;
           }
         }
       } else {
-        for (j = y = 0, ref10 = maxAll; 0 <= ref10 ? y <= ref10 : y >= ref10; j = 0 <= ref10 ? ++y : --y) {
-          if ((start <= (ref11 = perm[j]) && ref11 <= end)) {
+        for (let j = 0; j <= maxAll; ++j) {
+          if (start <= perm[j] && perm[j] <= end) {
             a += Cnk(j, x + 1);
             our[x] = perm[j];
-            x++;
+            ++x;
           }
         }
       }
-      for (j = z = ref12 = maxOur; ref12 <= 0 ? z <= 0 : z >= 0; j = ref12 <= 0 ? ++z : --z) {
-        k = 0;
-        while (our[j] !== start + j) {
-          rotateLeft(our, 0, j);
-          k++;
+
+      // Compute the index b < (maxOur + 1)! for the permutation
+      for (let j = maxOur; j >= 0; --j) {
+        let k = 0;
+        while (our[j] != start + j) {
+          moveLeft(our, 0, j);
+          ++k;
         }
         b = (j + 1) * b + k;
       }
