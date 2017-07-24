@@ -835,7 +835,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 		if ( scope.enabled === false ) return;
 
 		event.preventDefault();
-		event.stopPropagation();
+		//event.stopPropagation();
 
 		switch ( event.touches.length ) {
 
@@ -901,9 +901,9 @@ THREE.OrbitControls = function ( object, domElement ) {
 	scope.domElement.addEventListener( 'mousedown', onMouseDown, false );
 	scope.domElement.addEventListener( 'wheel', onMouseWheel, false );
 
-	scope.domElement.addEventListener( 'touchstart', onTouchStart, false );
-	scope.domElement.addEventListener( 'touchend', onTouchEnd, false );
-	scope.domElement.addEventListener( 'touchmove', onTouchMove, false );
+	scope.domElement.addEventListener( 'touchstart', onTouchStart, {passive:false} );
+	scope.domElement.addEventListener( 'touchend', onTouchEnd, {passive:false}  );
+	scope.domElement.addEventListener( 'touchmove', onTouchMove, {passive:false}  );
 
 	window.addEventListener( 'keydown', onKeyDown, false );
 
