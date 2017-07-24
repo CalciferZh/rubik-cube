@@ -1,3 +1,5 @@
 function solveCube() {
-  document.getElementById("solution").innerHTML = (new CubieCube(modeling()).solve());
+  let opstr = (new CubieCube(modeling()).solve());
+  let ops = opstr.split(' ');
+  stepByStepRotate(ops);
 }

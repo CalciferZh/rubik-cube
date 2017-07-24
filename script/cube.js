@@ -8,6 +8,8 @@ var unit = 50;
 var cubes = [];
 var colors = ['#30a0ff', '#60ff50', '#ff0000', '#ffa000', '#efff50','#ffffff', '#000000'];//blue green red orange yellow white
 var basicMaterials;
+var canvas;
+var ctx;
 
 var camera;
 var controller;
@@ -50,7 +52,8 @@ function initThree() {
     renderer = new THREE.WebGLRenderer();
     renderer.setSize(width, height);
     renderer.setClearColor(0xF0F0F0, 1.0);
-    document.getElementById('canvas-frame').appendChild(renderer.domElement);
+    canvas = document.getElementById('canvas-frame');
+    canvas.appendChild(renderer.domElement);
 }
 
 function initCamera() {
@@ -59,11 +62,10 @@ function initCamera() {
     camera.position.y = 300;
     camera.position.z = 500;
     camera.lookAt({x:0,y:0,z:0});
-//    camera.up.y = 1;
-     controller = new THREE.OrbitControls(camera, render.domElement);
-     controller.enableRotate = true;
-     controller.enablePan = false;
-     controller.enableZoom = false;
+    controller = new THREE.OrbitControls(camera, render.domElement);
+    controller.enableRotate = true;
+    controller.enablePan = false;
+    controller.enableZoom = false;
 }
 
 function initScene() {
@@ -88,7 +90,6 @@ function render(){
 }
 
 function drawCubes() {
-//    let canvases = generateCanvases();
     basicMaterials = generateBasicMaterials();
     for (let i = -1; i < 2; ++i)
         for (let j = -1; j < 2; ++j)
@@ -193,6 +194,7 @@ function rotateOnZ(objs, rad) {
 function OP(op, rad) {
     let objs = [];
     let axis;
+    let sgn = 1;
     switch(op) {
         case 'R':
             for (let cube of cubes) {
@@ -200,6 +202,7 @@ function OP(op, rad) {
                 objs.push(cube);
             }
             axis = 'X';
+            sgn = -1;
             break;
         case 'L':
             for (let cube of cubes) {
@@ -214,6 +217,7 @@ function OP(op, rad) {
                 objs.push(cube);
             }
             axis = 'Y';
+            sgn = -1;
             break;
         case 'D':
             for (let cube of cubes) {
@@ -228,6 +232,7 @@ function OP(op, rad) {
                 objs.push(cube);
             }
             axis = 'Z';
+            sgn = -1;
             break;
         case 'B':
             for (let cube of cubes) {
@@ -238,23 +243,23 @@ function OP(op, rad) {
             break;
     }
     canRotate = false;
-    window.requestAnimFrame(function(timestamp){rotate(objs,axis,rad,timestamp,0);});
+    window.requestAnimFrame(function(timestamp){rotate(objs,axis,sgn * rad,timestamp,0);});
 }
 function opClosure(ops, i, end) {
     return (function(){
         let op = ops[i];
         if (op.length === 1)
-            OP(op, -Math.PI / 2);
+            OP(op, Math.PI / 2);
         else if (op[1] === '2')
-            OP(op[0], -Math.PI);
+            OP(op[0], Math.PI);
         else if (op[1] === "'")
-            OP(op[0], Math.PI / 2);
+            OP(op[0], -Math.PI / 2);
         ++i;
         if (i === end)
             clearInterval(timer);
     });
 }
-function steyByStepRotate(ops) {
+function stepByStepRotate(ops) {
     var closure = opClosure(ops, 0, ops.length);
     timer = setInterval(closure, 1200);
 }
@@ -325,7 +330,7 @@ var last = {//use for mouseevent, store the infomation about rotation and mouse 
 
 function handleKeyDown(evt) {
     if (canRotate) {
-        let sgn = evt.shiftKey === true ? 1 : -1;
+        let sgn = evt.shiftKey === true ? -1 : 1;
         switch(evt.keyCode) {
             case 82: OP('R', sgn * Math.PI / 2);break;
             case 76: OP('L', sgn * Math.PI / 2);break;
@@ -442,34 +447,28 @@ function handleMove(evt) {
                 switch (last.axis) {
                     case 'X':
                         let x = Math.round(last.intersectPoint.x / 50) * 50;
-                        if (x !== 0) {//disabled rotate in mid
-                            for (let cube of cubes) {
-                                if (appro(cube.position.x, x))
-                                    last.objs.push(cube);
-                            }
-                            last.sgn = 1;
+                        for (let cube of cubes) {
+                            if (appro(cube.position.x, x))
+                                last.objs.push(cube);
                         }
+                        last.sgn = 1;
                         break;
                     case 'Y':
                         let y = Math.round(last.intersectPoint.y / 50) * 50;
-                        if (y !== 0) {
-                            for (let cube of cubes) {
-                                if (appro(cube.position.y, y))
-                                    last.objs.push(cube);
-                            }
-                            last.sgn = 1;
+                        for (let cube of cubes) {
+                            if (appro(cube.position.y, y))
+                                last.objs.push(cube);
                         }
+                        last.sgn = 1;
                         break;
                     case 'Z':
                         let z = Math.round(last.intersectPoint.z / 50) * 50;
-                        if (z !== 0) {
-                            for (let cube of cubes) {
-                                if (appro(cube.position.z, z))
-                                    last.objs.push(cube);
-                            }
-                            last.sgn = -1;
-                            break;
+                        for (let cube of cubes) {
+                            if (appro(cube.position.z, z))
+                                last.objs.push(cube);
                         }
+                        last.sgn = -1;
+                        break;
                 }
         }
         diff *= last.sgn;
