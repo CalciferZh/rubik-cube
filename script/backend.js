@@ -732,6 +732,9 @@ CubieCube.computePruningTables = function() {
 CubieCube.initSolver = function() {
   CubieCube.computeMoveTables();
   CubieCube.computePruningTables();
+  console.log("Cube solver initialized");
+  // document.getElementById("init_tip").setAttribute("class", "invisible");
+  initialized = true;
 };
 
 CubieCube.prototype.solve = function(maxDepth) {

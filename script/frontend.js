@@ -1,15 +1,17 @@
+var initialized = false;
+var tip;
+
 function init() {
   begin();
-  let body = document.getElementsByTagName("body")[0];
-  body.width = 20;
-  body.height = 20;
-  // body.width = window.innerWidth();
-  // body.height = window.innerWidth();
-  // CubieCube.initSolver();
 }
 
 function solveCube() {
+  if (!initialized) {
+    CubieCube.initSolver();
+    initialized = true;
+  }
   let opstr = (new CubieCube(modeling()).solve());
   let ops = opstr.split(' ');
+  document.getElementById("solve").setAttribute("disabled", "disabled");
   stepByStepRotate(ops);
 }

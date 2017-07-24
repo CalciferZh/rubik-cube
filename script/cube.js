@@ -255,8 +255,10 @@ function opClosure(ops, i, end) {
         else if (op[1] === "'")
             OP(op[0], -Math.PI / 2);
         ++i;
-        if (i === end)
+        if (i === end) {
             clearInterval(timer);
+            document.getElementById("solve").removeAttribute("disabled");
+        }
     });
 }
 function stepByStepRotate(ops) {
