@@ -92,6 +92,15 @@ class CubieCube {
     this.ep = [UR, UF, UL, UB, DR, DF, DL, DB, FR, FL, BL, BR];
     // eo: edge orientation
     this.eo = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+    if (arguments.length !== 0) {
+      let src = arguments[0];
+      this.cp = src.cp;
+      this.co = src.co;
+      this.ep = src.ep;
+      this.eo = src.eo;
+    }
+
     // stores the status of a cube tranformed from initial status after
     // atomic manipulation
     this.rotation = [
@@ -293,7 +302,7 @@ class CubieCube {
 
     return entity;
   }
-}2
+}
 
 CubieCube.rotation = [
       { // U
