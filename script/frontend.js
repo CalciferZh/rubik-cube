@@ -28,8 +28,11 @@ function scrambling(){
   let ops = [];
   let faces = ['U','D','F','B','L','R'];
   let directions = ['', "'", '2'];
+  let last = -1;
   for (let i = 0; i < 16; ++i) {
     let face = Math.floor(Math.random() * 6);
+    if (face === last)
+      face = (face + 1) % 6;
     let dir = Math.floor(Math.random() * 3);
     ops.push(faces[face] + directions[dir]);
   }
@@ -97,6 +100,8 @@ function setColor(evt) {
           oldMaterialIndex = i;
       if (oldMaterialIndex !== 6) {
         colorArray[oldMaterialIndex]++;
+        if (colorArray[oldMaterialIndex] === 1)
+          document.getElementById('color' + oldMaterialIndex).style.borderWidth = "1px";
         // document.getElementById('color' + oldMaterialIndex).innerHTML = colorArray[oldMaterialIndex];
       }
       let faceIndex = Math.floor(cubes[0].faceIndex / 2);     
@@ -132,37 +137,52 @@ function cube2face(cube) {
   if (appro(cube.position.z, -unit)) return 'B';
 }
 function pretreatment() {
-  let center = [4, 10, 12, 14, 16, 22];//U -> blueFace
+  let center = [4, 10, 12, 14, 16, 22];
   let face = [1, 3, 5, 4, 2, 0];
   let color2face = ['U','D','F','B','R','L']
   let bluePos, redPos;
   for (let i = 0; i < 6; ++i) {
-    if (cubes[center[i]].material[face[i]] === basicMaterials[0]) {
+    if (cubes[center[i]].material[face[i]] === basicMaterials[0])
       blue = cube2face(cubes[center[i]]);
-      break;
-    }
+    if (cubes[center[i]].material[face[i]] === basicMaterials[2])
+      red = cube2face(cubes[center[i]]);
   }
+
   let ops = [];
   switch(blue) {
+    case 'U':break;
     case 'D':ops.push("LR");ops.push("LR");break;
     case 'F':ops.push("LR");ops.push("LR");ops.push("LR");break;
     case 'B':ops.push("LR");break;
     case 'L':ops.push("FB");ops.push("FB");ops.push("FB");break;
-    case 'D':ops.push("FB");break;
+    case 'R':ops.push("FB");break;
   }
-  for (let i = 0; i < 6; ++i) {
-    if (cubes[center[i]].material[face[i]] === basicMaterials[2]) {
-      red = cube2face(cubes[center[i]]);
-      break;
-    }
+  if (ops.length !== 0)  {
+    red = redTransform(red, ops[0], ops.length);
   }
   switch(red) {
     case 'B':ops.push("UD");ops.push("UD");break;
     case 'L':ops.push("UD");break;
     case 'R':ops.push("UD");ops.push("UD");ops.push("UD");break;
   }
-  stepByStepRotate(ops);
+  if (ops.length !== 0)
+    stepByStepRotate(ops);
   return ops.length;
+}
+function redTransform(red, op, times) {
+  let transformLR = ['U', 'F', 'D', 'B'];
+  let transformFB = ['U', 'L', 'D', 'R'];
+  if (op === "LR") {
+    let i;
+    for (i = 0; i < 4; ++i)
+      if(transformLR[i] === red) break;
+    return i === 4 ? red : transformLR[(i + times) % 4];
+  } else if (op === "FB") {
+    let i;
+    for (i = 0; i < 4; ++i)
+      if(transformFB[i] === red) break;
+    return i === 4 ? red : transformFB[(i + times) % 4];
+  }
 }
 function solve(){
   let opstr = (new CubieCube(modeling()).solve());
