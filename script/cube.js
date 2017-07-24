@@ -17,6 +17,7 @@ var cubes;
 var canRotate=true;
 var raycaster = new THREE.Raycaster();
 
+var timer;
 
 window.requestAnimFrame = (function() {
     return window.requestAnimationFrame ||
@@ -239,6 +240,25 @@ function OP(op, rad) {
     canRotate = false;
     window.requestAnimFrame(function(timestamp){rotate(objs,axis,rad,timestamp,0);});
 }
+function opClosure(ops, i, end) {
+    return (function(){
+        let op = ops[i];
+        if (op.length === 1)
+            OP(op, -Math.PI / 2);
+        else if (op[1] === '2')
+            OP(op[0], -Math.PI);
+        else if (op[1] === "'")
+            OP(op[0], Math.PI / 2);
+        ++i;
+        if (i === end)
+            clearInterval(timer);
+    });
+}
+function steyByStepRotate(ops) {
+    var closure = opClosure(ops, 0, ops.length);
+    timer = setInterval(closure, 1200);
+}
+
 function rotate(objs, axis, rad, now, start, last){
     let total = 300 * Math.abs(rad);
     if (start === 0) {
@@ -305,7 +325,7 @@ var last = {//use for mouseevent, store the infomation about rotation and mouse 
 
 function handleKeyDown(evt) {
     if (canRotate) {
-        let sgn = evt.ctrlKey === true ? 1 : -1;
+        let sgn = evt.shiftKey === true ? 1 : -1;
         switch(evt.keyCode) {
             case 82: OP('R', sgn * Math.PI / 2);break;
             case 76: OP('L', sgn * Math.PI / 2);break;
@@ -422,28 +442,34 @@ function handleMove(evt) {
                 switch (last.axis) {
                     case 'X':
                         let x = Math.round(last.intersectPoint.x / 50) * 50;
-                        for (let cube of cubes) {
-                            if (appro(cube.position.x, x))
-                                last.objs.push(cube);
+                        if (x !== 0) {//disabled rotate in mid
+                            for (let cube of cubes) {
+                                if (appro(cube.position.x, x))
+                                    last.objs.push(cube);
+                            }
+                            last.sgn = 1;
                         }
-                        last.sgn = 1;
                         break;
                     case 'Y':
                         let y = Math.round(last.intersectPoint.y / 50) * 50;
-                        for (let cube of cubes) {
-                            if (appro(cube.position.y, y))
-                                last.objs.push(cube);
+                        if (y !== 0) {
+                            for (let cube of cubes) {
+                                if (appro(cube.position.y, y))
+                                    last.objs.push(cube);
+                            }
+                            last.sgn = 1;
                         }
-                        last.sgn = 1;
                         break;
                     case 'Z':
                         let z = Math.round(last.intersectPoint.z / 50) * 50;
-                        for (let cube of cubes) {
-                            if (appro(cube.position.z, z))
-                                last.objs.push(cube);
+                        if (z !== 0) {
+                            for (let cube of cubes) {
+                                if (appro(cube.position.z, z))
+                                    last.objs.push(cube);
+                            }
+                            last.sgn = -1;
+                            break;
                         }
-                        last.sgn = -1;
-                        break;
                 }
         }
         diff *= last.sgn;
