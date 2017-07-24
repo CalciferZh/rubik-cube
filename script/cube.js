@@ -551,10 +551,12 @@ function modeling() {
             ep[loc] = kind;
         }
     }
-    for (let x of cp) console.info(x);
-    for (let x of co) console.info(x);
-    for (let x of ep) console.info(x);
-    for (let x of eo) console.info(x);
+    let result = new Object();
+    result.cp = cp;
+    result.co = co;
+    result.ep = ep;
+    result.eo = eo;
+    return result;
 }
 function getKind(cube) {
     let colorIndexs = [];
