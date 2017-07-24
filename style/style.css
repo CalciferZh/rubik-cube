@@ -4,11 +4,40 @@
   height:100%;
   background-color: #EEEEEE;
 }
-#solve {
+#draw, #finish {
   overflow: hidden;
   position: absolute;
   width: 60px;
   height: 60px;
   right:20px;
   top: 20px;
+}
+#solve  {
+  overflow: hidden;
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  right:20px;
+  top: 90px;
+}
+#scramble {
+  overflow: hidden;
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  right:20px;
+  top: 160px;
+}
+
+
+.colorBox {
+  display:none;
+  overflow: hidden;
+  position: absolute;
+  width:50px;
+  height: 50px;
+  left:20px;
+  background-color: #FFFFFF;
+  border: 0px solid #3030FF;
+  font-size:24px;
 }
