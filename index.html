@@ -23,7 +23,11 @@
     </head>
     <body onload="init();">
         <div id="canvas-frame"></div>
-        <button id="solve" onclick="solveCube();"></button>
-        <label id="init_tip" class="invisible">Initializing cube solver...</label>
+        <div id="btn_bar">
+            <span title="Auto solve"><button id="solve" onclick="solveCube();">Solve</button></span>
+            <span title="Build your cube"><button id="draw" onclick="clearCube();">Build</button></span>
+            <span title="Done!"><button id="finish" onclick="finishBuild();">Done</button></span>
+            <span title="Scramble"><button id="scramble" onclick="scrambling();">Rand</button></span>
+        </div>
     </body>
 </html>

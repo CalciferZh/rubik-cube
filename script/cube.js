@@ -6,7 +6,7 @@ var width;
 var height;
 var unit = 50;
 var cubes = [];
-var colors = ['#30a0ff', '#60ff50', '#ff0000', '#ffa000', '#efff50','#ffffff', '#000000'];//blue green red orange yellow white
+var colors = ['#30a0ff', '#60ff50', '#ff0000', '#ffa000', '#efff50','#ffffff', '#303030'];//blue green red orange yellow white
 var basicMaterials;
 var canvas;
 var ctx;
@@ -30,6 +30,7 @@ window.requestAnimFrame = (function() {
 })();
 
 function begin() {
+    initHTML();
     initThree();
     initCamera();
     initScene();
@@ -44,6 +45,21 @@ function begin() {
     window.addEventListener('touchmove', handleMove, {passive:false});
     window.addEventListener('touchend', handleEnd, {passive:false});
     window.addEventListener('resize', onWindowResize);
+}
+function initHTML() {
+    let body = document.getElementsByTagName('body')[0];
+    for (let i = 0; i <= 6; ++i) {
+        let colorbox = document.createElement('button');
+        colorbox.setAttribute('class', 'colorBox');
+        colorbox.setAttribute('id', 'color' + i);
+        colorbox.style.backgroundColor = colors[i];
+        colorbox.style.top = (20 + 60 * i) + "px";
+        colorbox.style.display = "none";
+        // colorbox.innerHTML = '9';
+        body.appendChild(colorbox);
+    }
+    document.getElementsByClassName('colorBox')[6].innerHTML = "";
+    document.getElementById('finish').style.display = 'none';
 }
 
 function initThree() {
@@ -211,6 +227,13 @@ function OP(op, rad) {
             }
             axis = 'X';
             break;
+        case 'LR':
+            for (let cube of cubes) {
+                if (appro(cube.position.x, 0)) 
+                objs.push(cube);
+            }
+            axis = 'X';
+            break;
         case 'U':
             for (let cube of cubes) {
                 if (appro(cube.position.y, unit)) 
@@ -222,6 +245,13 @@ function OP(op, rad) {
         case 'D':
             for (let cube of cubes) {
                 if (appro(cube.position.y, -unit)) 
+                objs.push(cube);
+            }
+            axis = 'Y';
+            break;
+        case 'UD':
+            for (let cube of cubes) {
+                if (appro(cube.position.y, 0)) 
                 objs.push(cube);
             }
             axis = 'Y';
@@ -241,10 +271,18 @@ function OP(op, rad) {
             }
             axis = 'Z';
             break;
+        case 'FB':
+            for (let cube of cubes) {
+                if (appro(cube.position.z, 0)) 
+                objs.push(cube);
+            }
+            axis = 'Z';
+            break;
     }
     canRotate = false;
     window.requestAnimFrame(function(timestamp){rotate(objs,axis,sgn * rad,timestamp,0);});
 }
+
 function opClosure(ops, i, end) {
     return (function(){
         let op = ops[i];
@@ -257,7 +295,7 @@ function opClosure(ops, i, end) {
         ++i;
         if (i === end) {
             clearInterval(timer);
-            document.getElementById("solve").removeAttribute("disabled");
+            rotating = false;
         }
     });
 }
@@ -267,7 +305,7 @@ function stepByStepRotate(ops) {
 }
 
 function rotate(objs, axis, rad, now, start, last){
-    let total = 300 * Math.abs(rad);
+    let total = 200 * Math.abs(rad);
     if (start === 0) {
         start = now;
         last = now;
@@ -306,9 +344,7 @@ function appro(lhs, rhs) { return Math.abs(lhs - rhs) < 1;}
 
 
 function getIntersectCube(x, y) {
-    let mouse = new THREE.Vector2();
-    mouse.x = x;
-    mouse.y = y;
+    let mouse = new THREE.Vector2(x, y);
     raycaster.setFromCamera(mouse, camera);
     let cubes = raycaster.intersectObjects(scene.children);
     return cubes.length > 0 ? cubes[0] : null;

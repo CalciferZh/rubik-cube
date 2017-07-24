@@ -4,20 +4,9 @@ body {
 
 #canvas-frame {
   cursor: pointer;
-  width:100%;
-  height:100%;
+  width: 100%;
+  height: 100%;
   background-color: #EEEEEE;
-}
-
-#solve {
-  overflow: hidden;
-  position: absolute;
-  width: 60px;
-  height: 60px;
-  right: 20px;
-  top: 20px;
-  background: #000000 url(../media/solve.png) 0px 0px;
-  background-size: 100% 100%;
 }
 
 .invisible {
@@ -28,12 +17,58 @@ body {
   display: auto;
 }
 
-#init_tip {
+.colorBox {
+  display: none;
+  overflow: hidden;
   position: absolute;
-  top: 75%;
-  right: 5%;
-  font-size: 2em;
+  width: 50px;
+  height: 50px;
+  left: 20px;
+  background-color: #FFFFFF;
+  border: 1px solid #000000;
+  /*don't display number*/
+  font-size: 0px;
+  font-family: Helvetica;
 }
 
+#btn_bar {
+  position: absolute;
+  top: 40px;
+  right: 0px;
+  width: 96px;
+}
 
+button {
+  height: 60px;
+  width: 60px;
+  background-color: #696969;
+  background-size: 100% 100%;
+  font-size: 0px;
+  font-weight: bold;
+  color: #8B008B;
+}
+
+button:hover {
+  cursor: pointer;
+}
+
+#solve {
+  background-image: url(../media/solve.png);
+}
+
+#draw {
+  background-image: url(../media/draw.png);
+}
+
+#scramble {
+  background-image: url(../media/scramble.png);
+}
+
+#finish {
+  background-image: url(../media/finish.png);
+}
+
+#color6 {
+  background-image: url(../media/clear.png);
+}
 
