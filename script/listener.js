@@ -13,16 +13,15 @@ var last = {//use for mouseevent, store the infomation about rotation and mouse.
 }
 
 function handleKeyDown(evt) {
-    if (canRotate) {
-        let sgn = evt.shiftKey === true ? -1 : 1;
-        switch(evt.keyCode) {
-            case 82: OP('R', sgn * Math.PI / 2);break;
-            case 76: OP('L', sgn * Math.PI / 2);break;
-            case 85: OP('U', sgn * Math.PI / 2);break;
-            case 68: OP('D', sgn * Math.PI / 2);break;
-            case 70: OP('F', sgn * Math.PI / 2);break;
-            case 66: OP('B', sgn * Math.PI / 2);break;
-        }
+    if (!canRotate || rotating)return;
+    let sgn = evt.shiftKey === true ? -1 : 1;
+    switch(evt.keyCode) {
+        case 82: OP('R', sgn * Math.PI / 2);break;
+        case 76: OP('L', sgn * Math.PI / 2);break;
+        case 85: OP('U', sgn * Math.PI / 2);break;
+        case 68: OP('D', sgn * Math.PI / 2);break;
+        case 70: OP('F', sgn * Math.PI / 2);break;
+        case 66: OP('B', sgn * Math.PI / 2);break;
     }
 }
 
