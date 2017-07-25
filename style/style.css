@@ -1,7 +1,3 @@
-body {
-  text-align: center;
-}
-
 #canvas-frame {
   cursor: pointer;
   width: 100%;
@@ -73,7 +69,7 @@ button:hover {
   background-image: url(../media/clear.png);
 }
 
-#info_content {
+#info_container {
   position: absolute;
   top: 40px;
   right: 96px;
@@ -81,6 +77,13 @@ button:hover {
   font-size: 0.8em;
 }
 
-p {
+.infop {
   margin-bottom: 40px;
+}
+
+#help_container {
+  position: absolute;
+  right: 20px;
+  bottom: 0px;
+  text-align: right;
 }
