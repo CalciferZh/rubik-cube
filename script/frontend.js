@@ -239,13 +239,11 @@ function setColor(evt) {
         colorArray[oldMaterialIndex]++;
         if (colorArray[oldMaterialIndex] === 1)
           document.getElementById('color' + oldMaterialIndex).style.borderWidth = "1px";
-        // document.getElementById('color' + oldMaterialIndex).innerHTML = colorArray[oldMaterialIndex];
       }
       let faceIndex = Math.floor(cubes[0].faceIndex / 2);     
       cubes[0].object.material[faceIndex] = basicMaterials[selected];
       if (selected !== 6) {
         colorArray[selected]--;
-        // document.getElementById('color' + selected).innerHTML = colorArray[selected];
       }
       if (colorArray[selected] === 0) {
         document.getElementById('color' + selected).style.borderWidth = "0px";
@@ -283,7 +281,7 @@ function cube2face(cube) {
   if (appro(cube.position.y, -unit)) return 'D';
   if (appro(cube.position.z, -unit)) return 'B';
 }
-function pretreatment() {
+function pretreatment() {//set center back
   let center = [4, 10, 12, 14, 16, 22];
   let face = [1, 3, 5, 4, 2, 0];
   let color2face = ['U','D','F','B','R','L']

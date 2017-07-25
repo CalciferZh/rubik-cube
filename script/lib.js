@@ -178,4 +178,6 @@ permutationIndex = function(context, start, end, fromEnd) {
   };
 };
 
-
+function appro(lhs, rhs) { 
+  return Math.abs(lhs - rhs) < 1;
+}
