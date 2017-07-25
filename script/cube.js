@@ -152,22 +152,7 @@ function generateMaterial(i, j, k) {
     }
     return materials;
 }
-function redrawCube(indexes) {
-    for (let i = 0; i < 9; ++i) {
-        //[6,15,24,7,16,25,8,17,26] UP
-        cubes[Math.floor(i / 3) + 6 + 9 * (i % 3)].material[2] = basicMaterials[indexes[i]];
-        //[6,7,8,3,4,5,0,1,2] LEFT
-        cubes[Math.floor(i / 3) * 3 + (i % 3)].material[1] = basicMaterials[indexes[9 + i]];
-        //[8,17,26,5,14,23,2,11,20] FRONT
-        cubes[8 - 3 * Math.floor(i / 3) + 9 * (i % 3)].material[4] = basicMaterials[indexes[18 + i]];
-        //[26,25,24,23,22,21,20,19,18] RIGHT
-        cubes[26 - i].material[0] = basicMaterials[indexes[27 + i]];
-        //[24,15,6,21,12,3,18,9,0] BACK
-        cubes[24 - 3 * Math.floor(i / 3) - 9 * (i % 3)].material[5] = basicMaterials[indexes[36 + i]];
-        //[0,9,18,1,10,19,2,11,20] DOWN
-        cubes[Math.floor(i / 3) + 9 * (i % 3)].material[3] = basicMaterials[indexes[45 + i]];
-    }
-}
+
 function rotateOnX(objs, rad) {
     let cos = Math.cos(rad);
     let sin = Math.sin(rad);
@@ -323,6 +308,7 @@ function cameraRotate(axis, rad, now, start, last){
     }
     if (now - start > total) {
         now = start + total;
+        canRotate = true;
     }
     camera.position.applyAxisAngle(axis, rad * (now - last) / total) ;
     controller.update();
