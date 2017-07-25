@@ -30,16 +30,16 @@
 #btn_bar {
   position: absolute;
   top: 40px;
-  right: 0px;
+  right: 40px;
   width: 96px;
 }
 
 button {
-  height: 60px;
-  width: 60px;
+  height: 90px;
+  width: 90px;
   background-color: #696969;
   background-size: 100% 100%;
-  -webkit-tap-highlight-color: transparent;
+  margin-bottom: 10px;
 }
 
 button:hover {
