@@ -37,13 +37,14 @@ function begin() {
     initLight();
     initObject();
     render();
+    let canvasFrame = document.getElementById('canvas-frame');   
+    canvasFrame.addEventListener('mousedown', handleStart);
+    canvasFrame.addEventListener('mousemove', handleMove);
+    canvasFrame.addEventListener('mouseup', handleEnd);
+    canvasFrame.addEventListener('touchstart', handleStart, {passive:false});
+    canvasFrame.addEventListener('touchmove', handleMove, {passive:false});
+    canvasFrame.addEventListener('touchend', handleEnd, {passive:false});
     window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('mousedown', handleStart);
-    window.addEventListener('mousemove', handleMove);
-    window.addEventListener('mouseup', handleEnd);
-    window.addEventListener('touchstart', handleStart, {passive:false});
-    window.addEventListener('touchmove', handleMove, {passive:false});
-    window.addEventListener('touchend', handleEnd, {passive:false});
     window.addEventListener('resize', onWindowResize);
 }
 function initHTML() {
@@ -208,6 +209,7 @@ function rotateOnZ(objs, rad) {
 }
 
 function OP(op, rad) {
+    canRotate = false;
     let objs = [];
     let axis;
     let sgn = 1;
@@ -228,10 +230,7 @@ function OP(op, rad) {
             axis = 'X';
             break;
         case 'LR':
-            for (let cube of cubes) {
-                if (appro(cube.position.x, 0)) 
-                objs.push(cube);
-            }
+            objs = cubes;
             axis = 'X';
             break;
         case 'U':
@@ -250,10 +249,7 @@ function OP(op, rad) {
             axis = 'Y';
             break;
         case 'UD':
-            for (let cube of cubes) {
-                if (appro(cube.position.y, 0)) 
-                objs.push(cube);
-            }
+            objs = cubes;
             axis = 'Y';
             break;
         case 'F':
@@ -272,14 +268,10 @@ function OP(op, rad) {
             axis = 'Z';
             break;
         case 'FB':
-            for (let cube of cubes) {
-                if (appro(cube.position.z, 0)) 
-                objs.push(cube);
-            }
+            objs = cubes;
             axis = 'Z';
             break;
     }
-    canRotate = false;
     window.requestAnimFrame(function(timestamp){rotate(objs,axis,sgn * rad,timestamp,0);});
 }
 
@@ -295,7 +287,7 @@ function opClosure(ops, i, end) {
         ++i;
         if (i === end) {
             clearInterval(timer);
-            rotating = false;
+            canRotate = true;
         }
     });
 }
@@ -310,7 +302,7 @@ function rotate(objs, axis, rad, now, start, last){
         start = now;
         last = now;
     }
-    if (now - start >= total) {
+    if (now - start > total) {
         now = start + total;
         canRotate = true;
     }
@@ -319,8 +311,8 @@ function rotate(objs, axis, rad, now, start, last){
         case 'Y': rotateOnY(objs, (now - last) / total * rad); break;
         case 'Z': rotateOnZ(objs, (now - last) / total * rad); break;
     }
-    if (now - start < total){
-         window.requestAnimFrame(function(timestamp){rotate(objs, axis, rad, timestamp,start,now);});
+    if (now - start < total - 1){
+        window.requestAnimFrame(function(timestamp){rotate(objs, axis, rad, timestamp,start,now);});
     }
 }
 function cameraRotate(axis, rad, now, start, last){
@@ -331,7 +323,6 @@ function cameraRotate(axis, rad, now, start, last){
     }
     if (now - start > total) {
         now = start + total;
-        canRotate = true;
     }
     camera.position.applyAxisAngle(axis, rad * (now - last) / total) ;
     controller.update();
@@ -381,6 +372,7 @@ function handleKeyDown(evt) {
 }
 
 function handleStart(evt) {
+    if (!canRotate || rotating)return;
     let clientX, clientY;
     if (evt.touches) {
         evt.preventDefault();
@@ -391,14 +383,13 @@ function handleStart(evt) {
         clientY = evt.clientY;
     }
     if (evt.button === 2 || (evt.touches && evt.touches.length === 2)) {//right-clike or double-finger touch
-        canRotate = false;
+        console.info(rotating);
         controller.enableRotate = false;
         last.x = clientX;
         last.y = clientY;
         last.rotatingAllCubes = true;
+        return;
     }
-    if (!canRotate)return;
-    canRotate = false;
     let cube = getIntersectCube((clientX / width) * 2 - 1, -(clientY / height) * 2 + 1);
     if (cube !== null) {//pointing to the cube
         last.intersectPoint = cube.point;
@@ -408,10 +399,12 @@ function handleStart(evt) {
             last.point = 'Y';
         else if (appro(Math.abs(cube.point.z), unit * 1.5))
             last.point = 'Z';
+        canRotate = false
         last.x = clientX;
         last.y = clientY;
         last.rotatingNineCubes = true;
         controller.enableRotate = false;
+        return;
     } 
 }
 function handleEnd(evt) {
@@ -426,6 +419,10 @@ function handleEnd(evt) {
     controller.enableRotate = true;
     if (last.rotatingNineCubes) {
         last.rotatingNineCubes = false;
+        if (last.total === 0) {//not rotating at all
+            canRotate = true;
+            return;
+        }
         let sgn = last.total > 0 ? 1 : -1;
         let count = sgn * last.total / 100 / Math.PI;
         count = (count - Math.floor(count) > 0.25) ? Math.floor(count) + 1 : Math.floor(count);
@@ -448,7 +445,7 @@ function handleEnd(evt) {
         let rad = Math.PI / 2 * last.sgn;
         window.requestAnimFrame(function(timestamp){rotate(cubes,axis,rad,timestamp,0);});
         last.axis = '';
-    }
+    } 
 }
 
 function handleMove(evt) {
@@ -470,7 +467,7 @@ function handleMove(evt) {
                 let dx = clientX - last.x;
                 let dy = clientY - last.y;
                 diff = dx > dy ? dx : dy;
-                if (Math.abs(dx) < 40 && Math.abs(dy) < 40) return;//movement is so small, not gonna update last.x or last.y
+                if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return;//movement is so small, not gonna update last.x or last.y
                 let cube = getIntersectCube((clientX / width) * 2 - 1, -(clientY / height) * 2 + 1);
                 if (cube === null) return;
                 let ddx = Math.abs(cube.point.x - last.intersectPoint.x);
@@ -519,7 +516,7 @@ function handleMove(evt) {
     } else if (last.rotatingAllCubes) {
         let dx = clientX - last.x;
         let dy = clientY - last.y;
-        if (Math.abs(dx) < 40 && Math.abs(dy) < 40) return;
+        if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
         if (Math.abs(dx) > Math.abs(dy)) {
             last.axis = 'Y';
             last.sgn = dx > 0 ? 1 : -1;

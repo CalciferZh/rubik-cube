@@ -139,10 +139,8 @@ function solveCube() {
     return;
   }
   rotating = true;
-  let opstr = (new CubieCube(model).solve());
-  let ops = opstr.split(' ');
   let pre = pretreatment();
-  setTimeout('solve();', 1000 * (pre+1));
+  setTimeout('solve();', 600 * (pre+1));
 }
 
 function scrambling(){
@@ -152,12 +150,13 @@ function scrambling(){
   rotating = true;
   let ops = [];
   let faces = ['U','D','F','B','L','R'];
-  let directions = ['', "'", '2'];
+  let directions = ['', "'"];
   let last = -1;
   for (let i = 0; i < 16; ++i) {
     let face = Math.floor(Math.random() * 6);
     if (face === last)
       face = (face + 1) % 6;
+    last = face;
     let dir = Math.floor(Math.random() * 3);
     ops.push(faces[face] + directions[dir]);
   }
@@ -176,8 +175,10 @@ function clearCube(){
   let colorBoxes = document.getElementsByClassName('colorBox');
   for (let elem of colorBoxes) {
     elem.style.display = "block";
+    elem.style.borderWidth = "1px";
     elem.addEventListener('mousedown', selectColor);
-    window.addEventListener('mousedown', setColor);
+    window.addEventListener('mousedown', setColor, {passive:false});
+    window.addEventListener('touchstart', setColor);
   }
   document.getElementById('solve').style.display = 'none';
   document.getElementById('draw').style.display = 'none';
@@ -196,6 +197,7 @@ function finishBuild() {
     elem.style.display = "none";
     elem.removeEventListener('mousedown', selectColor);
     window.removeEventListener('mousedown', setColor);
+    window.removeEventListener('touchstart', setColor);
   }
   document.getElementById('finish').style.display = 'none';
   document.getElementById('solve').style.display = 'block';
@@ -212,9 +214,16 @@ function selectColor(evt) {
 }
 
 function setColor(evt) {
-    let x = evt.clientX;
-    let y = evt.clientY;
-    let mouse = new THREE.Vector2(x / width * 2 - 1, - y / height * 2 + 1);
+    let clientX, clientY;
+    if (evt.touches) {
+        evt.preventDefault();
+        clientX = evt.touches[0].clientX;
+        clientY = evt.touches[0].clientY;
+    } else {
+        clientX = evt.clientX;
+        clientY = evt.clientY;
+    }
+    let mouse = new THREE.Vector2(clientX / width * 2 - 1, - clientY / height * 2 + 1);
     raycaster.setFromCamera(mouse, camera);
     let cubes = raycaster.intersectObjects(scene.children);
     if (cubes.length !== 0) {
@@ -320,16 +329,25 @@ function redTransform(red, op, times) {
   }
 }
 function solve(){
+  rotating = true;
   let opstr = (new CubieCube(modeling()).solve());
-  stepByStepRotate(opstr.split(' '));
+  let ops = opstr.split(' ');
+  let newops = [];
+  for (let op of ops) {
+    if (op.length === 2 && op[1] === '2') {
+      newops.push(op[0]);
+      newops.push(op[0]);
+    } else {
+      newops.push(op);
+    }
+  }
+  stepByStepRotate(newops);
 }
 function opClosure(ops, i, end) {
     return (function(){
         let op = ops[i];
         if (op.length === 1)
             OP(op, Math.PI / 2);
-        else if (op[1] === '2')
-            OP(op[0], Math.PI);
         else if (op[1] === "'")
             OP(op[0], -Math.PI / 2);
         else
@@ -343,5 +361,5 @@ function opClosure(ops, i, end) {
 }
 function stepByStepRotate(ops) {
     var closure = opClosure(ops, 0, ops.length);
-    timer = setInterval(closure, 900);
+    timer = setInterval(closure, 600);
 }
