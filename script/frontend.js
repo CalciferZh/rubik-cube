@@ -4,6 +4,8 @@ let showInfo = false;
 
 function init() {
   begin();
+  CubieCube.initSolver();
+  initialized = true;
 }
 
 // Eerror code:
@@ -91,9 +93,10 @@ function verify(c) {
   }
   sum2 = (sum2 % 2) & 0xffff;
 
-  if (sum1 ^ sum2 != 0) {
-    errCode.push(5);
-  }
+  // here seems to have some problem
+  // if (sum1 ^ sum2 !== 0) {
+  //   errCode.push(5);
+  // }
 
   if (errCode.length === 0) {
     return true;
@@ -127,12 +130,12 @@ function verify(c) {
 }
 
 function solveCube() {
+  if (rotating) {
+    return;
+  }
   if (!initialized) {
     CubieCube.initSolver();
     initialized = true;
-  }
-  if (rotating) {
-    return;
   }
   let model = modeling();
   if (!verify(model)) {

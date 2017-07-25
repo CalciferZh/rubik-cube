@@ -39,6 +39,7 @@ button {
   width: 60px;
   background-color: #696969;
   background-size: 100% 100%;
+  -webkit-tap-highlight-color: transparent;
 }
 
 button:hover {
@@ -78,7 +79,7 @@ button:hover {
 }
 
 .infop {
-  margin-bottom: 40px;
+  margin-bottom: 45px;
 }
 
 #help_container {
