@@ -43,9 +43,6 @@ button {
   width: 60px;
   background-color: #696969;
   background-size: 100% 100%;
-  font-size: 0px;
-  font-weight: bold;
-  color: #8B008B;
 }
 
 button:hover {
@@ -68,7 +65,22 @@ button:hover {
   background-image: url(../media/finish.png);
 }
 
+#help {
+  background-image: url(../media/help.png);
+}
+
 #color6 {
   background-image: url(../media/clear.png);
 }
 
+#info_content {
+  position: absolute;
+  top: 40px;
+  right: 96px;
+  text-align: right;
+  font-size: 0.8em;
+}
+
+p {
+  margin-bottom: 40px;
+}

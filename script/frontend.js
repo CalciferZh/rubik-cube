@@ -1,5 +1,6 @@
 var initialized = false;
 var rotating = false;
+let showInfo = false;
 
 function init() {
   begin();
@@ -243,7 +244,16 @@ function setColor(evt) {
       
 }
 
-
+function switchInfo() {
+  let block = document.getElementById("info_content");
+  if (showInfo) {
+    block.setAttribute("class", "invisible");
+    showInfo = false;
+  } else {
+    block.setAttribute("class", "visible");
+    showInfo = true;
+  }
+}
 
 
 
