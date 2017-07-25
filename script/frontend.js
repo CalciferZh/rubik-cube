@@ -5,6 +5,126 @@ function init() {
   begin();
 }
 
+// Eerror code:
+// 0: Cube is solvable
+// 1: Not all 12 edges exist exactly once
+// 2: Flip error: One edge has to be flipped
+// 3: Not all corners exist exactly once
+// 4: Twist error: One corner has to be twisted
+// 5: Parity error: Two corners ore two edges have to be exchanged
+function verify(c) {
+  let sum = 0;
+  let errCode = [];
+
+//++++++++++++++++++++++++++++++++ edge check ++++++++++++++++++++++++++++++++
+  let edgeCnt = (function() {
+    let result = [];
+    for (let i = 0; i < 12; ++i) {
+      result.push(0);
+    }
+    return result;
+  })();
+  for (let patch of c.ep) {
+    ++edgeCnt[patch];
+  }
+  for (let cnt of edgeCnt) {
+    if (cnt != 1) {
+      errCode.push(1);
+      break;
+    }
+  }
+
+  for (let i = 0; i < 12; ++i) {
+    sum += c.eo[i];
+  }
+  if (sum % 2 !== 0) {
+    errCode.push(2);
+  }
+
+//+++++++++++++++++++++++++++++++++ corner check +++++++++++++++++++++++++++++
+  let cornerCnt = (function() {
+    let result = [];
+    for (let i = 0; i < 8; ++i) {
+      result.push(0);
+    }
+    return result;
+  })();
+  for (let patch of c.cp) {
+    ++cornerCnt[patch];
+  }
+  for (let cnt of cornerCnt) {
+    if (cnt != 1) {
+      errCode.push(3);
+      break;
+    }
+  }
+
+  sum = 0;
+  for (let i = 0; i < 8; ++i) {
+    sum += c.co[i];
+  }
+  if (sum % 3 !== 0) {
+    errCode.push(4);
+  }
+
+//++++++++++++++++++++++++++++++++ parity check ++++++++++++++++++++++++++++++
+  let sum1 = 0;
+  for (let i = DRB; i > URF; --i) {
+    for (let j = i - 1; j > URF - 1; --j) {
+      if (c.cp[j] > c.cp[i]) {
+        ++sum1;
+      }
+    }
+  }
+  sum1 = (sum1 % 2) & 0xffff
+
+
+
+  let sum2 = 0;
+  for (let i = BR; i > UR; --i) {
+    for (let j = i - 1; j < UR - 1; --j) {
+      if (c.ep[j] > c.ep[i]) {
+        ++sum2;
+      }
+    }
+  }
+  sum2 = (sum2 % 2) & 0xffff;
+
+  if (sum1 ^ sum2 != 0) {
+    errCode.push(5);
+  }
+
+  if (errCode.length === 0) {
+    return true;
+  }
+
+  let errMsg = "The given cube is illegal:\n";
+  for (let code of errCode) {
+    switch(code) {
+      case 1:
+        errMsg += "Not all 12 edges exist exactly once.\n";
+        break;
+      case 2:
+        errMsg += "One edge was flipped.\n";
+        break;
+      case 3:
+        errMsg += "Not all 8 corners exist excatly once.\n";
+        break;
+      case 4:
+        errMsg += "One corner was twisted.\n";
+        break;
+      case 5:
+        errMsg += "Two corners or two edges were exchanged.\n"
+        break;
+      default:
+        console.log("Wrong error code in cube verify.")
+        break;
+    }
+  }
+  alert(errMsg);
+  return false;
+}
+
 function solveCube() {
   if (!initialized) {
     CubieCube.initSolver();
@@ -13,8 +133,12 @@ function solveCube() {
   if (rotating) {
     return;
   }
+  let model = modeling();
+  if (!verify(model)) {
+    return;
+  }
   rotating = true;
-  let opstr = (new CubieCube(modeling()).solve());
+  let opstr = (new CubieCube(model).solve());
   let ops = opstr.split(' ');
   let pre = pretreatment();
   setTimeout('solve();', 1000 * (pre+1));
