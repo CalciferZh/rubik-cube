@@ -3,9 +3,9 @@ var rotating = false;
 let showInfo = false;
 
 function init() {
-  begin();
   CubieCube.initSolver();
   initialized = true;
+  begin();
 }
 
 // Eerror code:
@@ -171,17 +171,20 @@ var colorArray = [9,9,9,9,9,9];
 var total = 54;
 
 function clearCube(){
+  let canvasFrame = document.getElementById('canvas-frame');   
   for (let cube of cubes) {
     for (let i = 0; i < 6; ++i) 
       cube.material[i] = basicMaterials[6];
   }
   let colorBoxes = document.getElementsByClassName('colorBox');
-  for (let elem of colorBoxes) {
+  for (let i = 0; i <= 6; ++i) {
+    let elem = colorBoxes[i]
     elem.style.display = "block";
     elem.style.borderWidth = "1px";
     elem.addEventListener('mousedown', selectColor);
-    window.addEventListener('mousedown', setColor, {passive:false});
-    window.addEventListener('touchstart', setColor);
+    elem.addEventListener('touchstart', selectColor);
+    canvasFrame.addEventListener('mousedown', setColor, {passive:false});
+    canvasFrame.addEventListener('touchstart', setColor);
   }
   document.getElementById('solve').style.display = 'none';
   document.getElementById('draw').style.display = 'none';
@@ -194,13 +197,14 @@ function clearCube(){
 }
 
 function finishBuild() {
-  //certificate the status of cube here?
+  let canvasFrame = document.getElementById('canvas-frame');   
   let colorBoxes = document.getElementsByClassName('colorBox');
-  for (let elem of colorBoxes) {
+  for (let i = 0; i <= 6; ++i) {
+    let elem = colorBoxes[i];
     elem.style.display = "none";
     elem.removeEventListener('mousedown', selectColor);
-    window.removeEventListener('mousedown', setColor);
-    window.removeEventListener('touchstart', setColor);
+    canvasFrame.removeEventListener('mousedown', setColor);
+    canvasFrame.removeEventListener('touchstart', setColor);
   }
   document.getElementById('finish').style.display = 'none';
   document.getElementById('solve').style.display = 'block';
@@ -257,11 +261,12 @@ function setColor(evt) {
 function switchInfo() {
   let blocks = document.getElementsByClassName("info");
   showInfo = !showInfo;
-  for (let block of blocks) {
+  for (let i = 0; i < blocks.length; ++i) {
+    let block = blocks[i];
     if (showInfo) {
-      block.setAttribute("class", "info visible");
+      block.className = "info visible";
     } else {
-      block.setAttribute("class", "info invisible");
+      block.className = "info invisible";
     }
   }
 }

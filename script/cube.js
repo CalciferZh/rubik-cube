@@ -37,15 +37,13 @@ function initHTML() {
     let body = document.getElementsByTagName('body')[0];
     for (let i = 0; i <= 6; ++i) {
         let colorbox = document.createElement('button');
-        colorbox.setAttribute('class', 'colorBox');
-        colorbox.setAttribute('id', 'color' + i);
+        colorbox.className ='colorBox';
+        colorbox.id = 'color' + i;
         colorbox.style.backgroundColor = colors[i];
         colorbox.style.top = (20 + 60 * i) + "px";
         colorbox.style.display = "none";
-        // colorbox.innerHTML = '9';
         body.appendChild(colorbox);
     }
-    document.getElementsByClassName('colorBox')[6].innerHTML = "";
     document.getElementById('finish').style.display = 'none';
 
     let canvasFrame = document.getElementById('canvas-frame');   
