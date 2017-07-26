@@ -40,7 +40,7 @@ function initHTML() {
         colorbox.className ='colorBox';
         colorbox.id = 'color' + i;
         colorbox.style.backgroundColor = colors[i];
-        colorbox.style.top = (20 + 60 * i) + "px";
+        colorbox.style.top = (20 + 100 * i) + "px";
         colorbox.style.display = "none";
         body.appendChild(colorbox);
     }
