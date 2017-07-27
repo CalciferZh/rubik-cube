@@ -98,13 +98,11 @@ permutationIndex = function(context, start, end, fromEnd) {
       let a = index / maxB | 0;
       let b = index % maxB;
 
-      // Invalidate all edges
       perm = this[permName];
       for (let i = 0; i <= maxAll; ++i) {
         perm[i] = -1;
       }
 
-      // Generate permutation from index b
       for (let j = 0; j <= maxOur; ++j) {
         let k = b % (j + 1);
         b = b / (j + 1) | 0;
@@ -114,7 +112,6 @@ permutationIndex = function(context, start, end, fromEnd) {
         }
       }
 
-      // Generate combination and set our edges
       x = maxOur;
 
       if (fromEnd) {

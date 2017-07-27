@@ -71,16 +71,16 @@ var Include, allMoves1, allMoves2, computeMoveTable, computePruningTable, factor
   slice1 = [].slice,
   indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-const N_TWIST = 2187,
-      N_FLIP = 2048,
-      N_PARITY = 2,
-      N_FRtoBR = 11880,
-      N_SLICE1 = 495,
-      N_SLICE2 = 24,
-      N_URFtoDLF = 20160,
-      N_URtoDF = 20160,
-      N_URtoUL = 1320,
-      N_UBtoDF = 1320;
+const N_TWIST = 2187, // 3^7 corner orien
+      N_FLIP = 2048, // 2^11 possible edge flips
+      N_PARITY = 2, // 2 possible corner parities
+      N_FRtoBR = 11880, // 12!/(12-4)! permutation of FR,FL,BL,BR edges
+      N_SLICE1 = 495, // 12 choose 4 possible positions of FR,FL,BL,BR edges
+      N_SLICE2 = 24, // 4! permutations of FR,FL,BL,BR edges in phase2
+      N_URFtoDLF = 20160, // 8!/(8-6)! permutation of URF,UFL,ULB,UBR,DFR,DLF corners
+      N_URtoDF = 20160, // 8!/(8-6)! permutation of UR,UF,UL,UB,DR,DF edges in phase2
+      N_URtoUL = 1320, // 12!/(12-3)! permutation of UR,UF,UL edges
+      N_UBtoDF = 1320; // 12!/(12-3)! permutation of UB,DR,DF edges
 
 class CubieCube {
   constructor() {
@@ -359,7 +359,7 @@ Include = {
       return this;
     } else {
       v = 0;
-      for (let i = 0; i <= 6; ++i) {
+      for (let i = 0; i < 7; ++i) {
         v = 3 * v + this.co[i];
       }
       return v;
@@ -651,6 +651,17 @@ CubieCube.pruningTables = {
   sliceURtoDFParity: null
 };
 
+// const N_TWIST = 2187, // 3^7 possible corner orientations
+//       N_FLIP = 2048, // 2^11 possible edge flips
+//       N_PARITY = 2, // 2 possible corner parities
+//       N_FRtoBR = 11880, // 12!/(12-4)! permutation of FR,FL,BL,BR edges
+//       N_SLICE1 = 495, // 12 choose 4 possible positions of FR,FL,BL,BR edges
+//       N_SLICE2 = 24, // 4! permutations of FR,FL,BL,BR edges in phase2
+//       N_URFtoDLF = 20160, // 8!/(8-6)! permutation of URF,UFL,ULB,UBR,DFR,DLF corners
+//       N_URtoDF = 20160, // 8!/(8-6)! permutation of UR,UF,UL,UB,DR,DF edges in phase2
+//       N_URtoUL = 1320, // 12!/(12-3)! permutation of UR,UF,UL edges
+//       N_UBtoDF = 1320; // 12!/(12-3)! permutation of UB,DR,DF edges
+
 pruningTableParams = {
   //[phase, size, currentCoords, nextIndex]
   sliceTwist: [
@@ -710,7 +721,7 @@ pruningTableParams = {
 };
 
 CubieCube.computePruningTables = function() {
-  let  tables = arguments;
+  let tables = arguments;
   if (tables.length === 0) {
     tables = (function() {
       let results = [];
